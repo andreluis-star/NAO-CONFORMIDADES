@@ -10,6 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --navy:#1A3A6E; --navy-2:#12294f; --navy-deep:#0d1f3d;
@@ -204,6 +206,11 @@ textarea{resize:vertical;min-height:70px}
 .note{background:var(--blue-100);border:1px solid #c5dbf5;color:var(--navy-2);font-size:12.5px;padding:12px 14px;border-radius:11px;line-height:1.55;margin-bottom:16px}
 .note b{font-weight:700}
 
+.cdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+.cdot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.cdot.local{background:var(--ink-muted)}
+.cdot.err{background:var(--red)}
+.login-cloud{font-size:12px;color:var(--ink-dim);margin-top:12px;min-height:16px;font-weight:600}
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;z-index:300;opacity:0;transition:all .3s;box-shadow:0 12px 30px -8px rgba(0,0,0,.5)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(max-width:820px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.row.cols-2{grid-template-columns:1fr}.adm-grid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.split-txt .s{display:none}}
@@ -229,8 +236,9 @@ textarea{resize:vertical;min-height:70px}
       <label>Senha de acesso</label>
       <input type="password" id="loginPass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">Entrar</button>
     <div class="login-err" id="loginErr"></div>
+    <div class="login-cloud" id="loginCloud"></div>
     <div class="login-hint">Primeiro acesso? Use a senha admin padrão <b>portoex</b> e cadastre os setores no painel Administração.</div>
     <div class="motto">Nossa rota é ir além das entregas!</div>
   </div>
@@ -262,6 +270,7 @@ textarea{resize:vertical;min-height:70px}
       </div>
       <div class="spacer"></div>
       <button class="btn-cta" id="btnNew" onclick="openCadastro()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Nova ocorrência</button>
+      <div class="user-chip" id="cloudChip" title="Estado da nuvem"><span class="cdot local"></span> Local</div>
       <div class="user-chip"><span class="user-avatar" id="uav">A</span><span>Setor: <b id="uname">Admin</b></span></div>
       <button class="btn-ghost" onclick="logout()">Sair</button>
     </div>
@@ -342,6 +351,7 @@ textarea{resize:vertical;min-height:70px}
         <div><div class="eyebrow">Controle de acessos</div><h2>Administração</h2><p>Cadastre setores e suas senhas, monte grupos de trabalho e defina o nível de visualização de cada um.</p></div>
       </div>
       <div class="note"><b>Como funciona:</b> a senha <b>admin</b> vê tudo e gerencia esta tela. Cada setor entra com a própria senha e enxerga conforme o nível: <b>Só o próprio setor</b>, <b>Grupo de trabalho</b> ou <b>Tudo</b>.</div>
+      <div class="note" id="cloudNote" style="display:none"></div>
       <div class="adm-grid">
         <div class="card">
           <div class="card-head"><div><h3>Setores &amp; senhas</h3><div class="sub">Usuários de acesso por setor</div></div></div>
@@ -429,6 +439,24 @@ textarea{resize:vertical;min-height:70px}
 const STORE_KEY = 'portoex_nc_v1';
 const MES_ABBR = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
+/* ============================================================
+   CONFIGURAÇÃO DA NUVEM (FIREBASE)
+   Cole aqui os dados do SEU projeto Firebase (Configurações do
+   projeto > Seus apps > SDK do Firebase). Enquanto estiver em
+   branco, o sistema funciona só localmente (neste navegador).
+   Depois de preencher, publique este arquivo e todos os setores
+   passam a compartilhar os mesmos dados em tempo real.
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDZjORlQnMWCJ7cZUGi5fz3emG7jNtOg8Q",
+  authDomain: "portoex-nc.firebaseapp.com",
+  databaseURL: "https://portoex-nc-default-rtdb.firebaseio.com",
+  projectId: "portoex-nc",
+  storageBucket: "portoex-nc.firebasestorage.app",
+  messagingSenderId: "99020955840",
+  appId: "1:99020955840:web:186f0703db0d84f9314d25"
+};
+
 /* --- Planilha externa de Ocorrências (mesma do projeto paralelo) --- */
 const SHEET_ID_OCORRENCIAS = '1D7C9_0iKZypa8F7nh_iOtxaTZArMchdj';
 const SHEET_NAME_OCORRENCIAS = 'Ocorrências';
@@ -466,7 +494,54 @@ function defaultState(){
 }
 let STATE = load();
 function load(){ try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)); return s&&s.registros?s:defaultState(); }catch(e){ return defaultState(); } }
-function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); }catch(e){ try{toast('Atenção: o navegador bloqueou o salvamento local. Use "Exportar backup" para não perder os dados.');}catch(_){} } }
+function save(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); }catch(e){ try{toast('Atenção: o navegador bloqueou o salvamento local.');}catch(_){} }
+  if(cloudOn && cloudDoc && !cloudApplying){ cloudDoc.set({state:JSON.stringify(STATE), ts:Date.now()}).catch(()=>{}); }
+}
+
+/* ============ NUVEM (FIREBASE / FIRESTORE) ============ */
+const CLOUD_CONFIGURED = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.projectId);
+let db=null, cloudDoc=null, cloudOn=false, cloudReady=false, cloudApplying=false;
+function isEditing(){ const a=document.activeElement; return a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName); }
+function modalOpen(){ const m=document.getElementById('modalCad'); return m && m.classList.contains('on'); }
+function setCloudChip(){
+  const c=document.getElementById('cloudChip'); if(!c)return;
+  if(!CLOUD_CONFIGURED){ c.innerHTML='<span class="cdot local"></span> Local'; c.title='Sem nuvem — dados só neste navegador'; }
+  else if(cloudOn){ c.innerHTML='<span class="cdot on"></span> Nuvem'; c.title='Conectado ao Firebase — dados compartilhados em tempo real'; }
+  else { c.innerHTML='<span class="cdot err"></span> Nuvem?'; c.title='Falha ao conectar à nuvem'; }
+}
+function updateLoginCloud(){
+  const el=document.getElementById('loginCloud'); const btn=document.getElementById('loginBtn'); if(!el)return;
+  if(!CLOUD_CONFIGURED){ el.textContent=''; if(btn)btn.disabled=false; return; }
+  if(!cloudReady){ el.innerHTML='<span class="cdot on"></span> Conectando à nuvem…'; if(btn)btn.disabled=true; }
+  else if(cloudOn){ el.innerHTML='<span class="cdot on"></span> Nuvem conectada'; if(btn)btn.disabled=false; }
+  else { el.innerHTML='<span class="cdot err"></span> Sem nuvem — usando dados locais'; if(btn)btn.disabled=false; }
+}
+function initCloud(){
+  setCloudChip(); updateLoginCloud();
+  if(!CLOUD_CONFIGURED){ cloudReady=true; updateLoginCloud(); return; }
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db=firebase.firestore();
+    cloudDoc=db.collection('portoex').doc('nc');
+    cloudDoc.onSnapshot(snap=>{
+      cloudOn=true; cloudReady=true; setCloudChip(); updateLoginCloud();
+      if(snap.exists){
+        const d=snap.data();
+        if(d && d.state){
+          try{
+            cloudApplying=true;
+            STATE=Object.assign(defaultState(), JSON.parse(d.state));
+            if(SESSION && !isEditing() && !modalOpen()){ renderAdmin(); renderAll(); }
+          }catch(e){}
+          finally{ cloudApplying=false; }
+        }
+      } else {
+        cloudDoc.set({state:JSON.stringify(STATE), ts:Date.now()}).catch(()=>{});
+      }
+    }, err=>{ cloudOn=false; cloudReady=true; setCloudChip(); updateLoginCloud(); console.warn('Firestore:', err.message); });
+  }catch(e){ cloudOn=false; cloudReady=true; setCloudChip(); updateLoginCloud(); }
+}
 
 /* ============ SESSÃO ============ */
 let SESSION = null; // {role:'admin'|'setor', name, nivel, grupo}
@@ -479,6 +554,7 @@ let tramFilter='all', baseMode='resp', informarFlag=true;
 function doLogin(){
   const p = document.getElementById('loginPass').value.trim();
   const err = document.getElementById('loginErr');
+  if(CLOUD_CONFIGURED && !cloudReady){ err.textContent='Aguarde a conexão com a nuvem…'; return; }
   if(!p){ err.textContent='Digite a senha.'; return; }
   if(p===STATE.adminPass){ SESSION={role:'admin',name:'Admin',nivel:'tudo',grupo:null}; enterApp(); return; }
   const s = STATE.setores.find(x=>x.pass===p);
@@ -892,6 +968,12 @@ function normMoney(v){ v=(v||'').trim(); if(!v)return''; return v.replace(/[^\d.
 /* ============ ADMIN ============ */
 function renderAdmin(){
   if(!SESSION||SESSION.role!=='admin')return;
+  const cn=document.getElementById('cloudNote');
+  if(cn){ cn.style.display='block';
+    if(!CLOUD_CONFIGURED) cn.innerHTML='<b>Nuvem não configurada.</b> Os dados estão só neste navegador. Para os setores entrarem de qualquer lugar, cole a configuração do Firebase no arquivo (siga o guia "COMO CONECTAR A NUVEM" que enviei).';
+    else if(cloudOn) cn.innerHTML='<b>✓ Nuvem conectada.</b> Senhas e cadastros são compartilhados em tempo real com todos os setores.';
+    else cn.innerHTML='<b>Falha na nuvem.</b> Confira a configuração do Firebase e as regras do Firestore.';
+  }
   // setores
   const cs=document.getElementById('admSetores');
   cs.innerHTML = STATE.setores.length? STATE.setores.map((s,i)=>`
@@ -961,6 +1043,7 @@ let toastTO;
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastTO); toastTO=setTimeout(()=>t.classList.remove('on'),2600); }
 
 window.addEventListener('resize',()=>{ if(SESSION) renderAll(); });
+initCloud();
 </script>
 </body>
 </html>
