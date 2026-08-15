@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A3A6E">
+<title>Portoex · Controle de Não Conformidades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --navy:#1A3A6E; --navy-2:#12294f; --navy-deep:#0d1f3d;
+  --blue:#2E6BC6; --blue-soft:#4d9fff; --blue-100:#e8f0fb;
+  --ink:#12233d; --ink-dim:#5a6b85; --ink-muted:#8b98ad;
+  --bg:#eef2f8; --surface:#ffffff; --surface-2:#f6f8fc; --border:#dde4ee; --border-strong:#c7d2e2;
+  --red:#e5484d; --red-soft:#fdecec; --yellow:#e8a800; --yellow-soft:#fdf6e3; --green:#1f9d57; --green-soft:#e7f6ee;
+  --shadow:0 1px 3px rgba(16,35,61,.06),0 8px 24px -12px rgba(16,35,61,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:'Inter Tight',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+button{font-family:inherit}
+.hidden{display:none !important}
+
+/* ============ LOGIN ============ */
+#login{position:fixed;inset:0;z-index:200;display:grid;place-items:center;
+  background:radial-gradient(1100px 600px at 80% -10%,rgba(46,107,198,.35),transparent 60%),
+             radial-gradient(900px 500px at -5% 110%,rgba(46,107,198,.25),transparent 55%),
+             linear-gradient(160deg,var(--navy),var(--navy-deep));padding:24px}
+.login-card{width:100%;max-width:400px;background:var(--surface);border-radius:20px;padding:38px 34px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5);text-align:center}
+.logo-lockup{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:6px}
+.logo-mark{width:66px;height:66px;border-radius:18px;background:linear-gradient(135deg,var(--navy),var(--blue));display:grid;place-items:center;box-shadow:0 10px 26px -8px rgba(26,58,110,.6)}
+.logo-mark svg{width:38px;height:38px}
+.logo-name{font-weight:800;font-size:23px;letter-spacing:.14em;color:var(--navy)}
+.logo-tag{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-top:-6px}
+.login-card h1{font-size:19px;font-weight:700;margin:20px 0 4px;color:var(--ink)}
+.login-card .sub{font-size:13px;color:var(--ink-dim);margin-bottom:22px;line-height:1.5}
+.field{text-align:left;margin-bottom:14px}
+.field label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+input,select,textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--surface);transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
+.btn-primary{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 8px 20px -8px rgba(26,58,110,.6)}
+.btn-primary:hover{filter:brightness(1.07)}
+.login-hint{font-size:11.5px;color:var(--ink-muted);margin-top:16px;line-height:1.6}
+.login-err{color:var(--red);font-size:12.5px;margin-top:10px;min-height:16px;font-weight:600}
+.motto{font-size:12px;color:var(--blue);font-weight:600;font-style:italic;margin-top:18px}
+
+/* ============ SHELL ============ */
+#app{display:none}
+#app.on{display:block}
+.topbar{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(16,35,61,.04)}
+.split-head{display:flex;max-width:1480px;margin:0 auto}
+.split-half{flex:1;padding:16px 26px;display:flex;align-items:center;gap:13px;cursor:pointer;position:relative;border:none;background:transparent;text-align:left;transition:background .2s;border-bottom:3px solid transparent}
+.split-half:hover{background:var(--surface-2)}
+.split-half.active{background:linear-gradient(180deg,rgba(46,107,198,.06),transparent)}
+.split-half.active.nc{border-bottom-color:var(--navy)}
+.split-half.active.erro{border-bottom-color:var(--red)}
+.split-half + .split-half{border-left:1px solid var(--border)}
+.split-ico{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;color:#fff}
+.split-half.nc .split-ico{background:linear-gradient(135deg,var(--navy),var(--blue))}
+.split-half.erro .split-ico{background:linear-gradient(135deg,#b93b3f,var(--red))}
+.split-ico svg{width:22px;height:22px}
+.split-txt .t{font-weight:700;font-size:14.5px;letter-spacing:.02em;line-height:1.15}
+.split-txt .s{font-size:11px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+.split-half:not(.active){opacity:.62}
+.split-badge{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;background:var(--surface-2);border:1px solid var(--border);padding:4px 10px;border-radius:8px;color:var(--ink-dim)}
+
+.subbar{max-width:1480px;margin:0 auto;padding:11px 26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand-mini{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:.12em;color:var(--navy);font-size:15px}
+.brand-mini .m{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--navy),var(--blue));display:grid;place-items:center}
+.brand-mini .m svg{width:15px;height:15px}
+.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav-btn{border:1px solid var(--border);background:#fff;color:var(--ink-dim);font-size:13px;font-weight:600;padding:8px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s}
+.nav-btn:hover{border-color:var(--border-strong);color:var(--ink)}
+.nav-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.nav-btn.active.erro-active{background:var(--red);border-color:var(--red)}
+.spacer{flex:1}
+.user-chip{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-dim);background:var(--surface-2);border:1px solid var(--border);padding:6px 12px;border-radius:999px}
+.user-chip b{color:var(--ink)}
+.user-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700}
+.btn-ghost{border:1px solid var(--border);background:#fff;color:var(--ink-dim);font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn-ghost:hover{color:var(--red);border-color:var(--red)}
+.btn-cta{border:none;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:13px;font-weight:700;padding:9px 15px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 6px 16px -8px rgba(26,58,110,.6)}
+.btn-cta.erro{background:linear-gradient(135deg,#b93b3f,var(--red))}
+.btn-cta:hover{filter:brightness(1.06)}
+
+main{max-width:1480px;margin:0 auto;padding:22px 26px 70px}
+.page{display:none;animation:fade .3s ease}
+.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.page-head{margin-bottom:20px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.page-head .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-bottom:6px}
+.page-head h2{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.page-head p{color:var(--ink-dim);font-size:13.5px;margin-top:5px;max-width:640px;line-height:1.55}
+.vertente-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:5px 11px;border-radius:7px}
+.vertente-tag.nc{background:var(--blue-100);color:var(--navy)}
+.vertente-tag.erro{background:var(--red-soft);color:var(--red)}
+
+#status{display:none;margin-bottom:18px;padding:11px 15px;border-radius:10px;background:var(--surface-2);color:var(--ink-dim);font-size:13px;border:1px solid var(--border)}
+#status.show{display:block}
+#status.error{background:var(--red-soft);color:#a5282c;border-color:#f3c9ca}
+
+.toolbar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:3px}
+.seg button{border:none;background:transparent;color:var(--ink-dim);font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:7px;cursor:pointer}
+.seg button.active{background:#fff;color:var(--navy);box-shadow:var(--shadow)}
+.seg.erro button.active{color:var(--red)}
+.mini-select{padding:8px 11px;font-size:13px;border-radius:9px;border:1px solid var(--border-strong);background:#fff;font-weight:500;max-width:230px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 17px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue)}
+.kpi.red::before{background:var(--red)} .kpi.green::before{background:var(--green)} .kpi.yellow::before{background:var(--yellow)} .kpi.navy::before{background:var(--navy)}
+.kpi-label{font-size:11px;color:var(--ink-muted);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.kpi-value{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:7px 0 3px;line-height:1}
+.kpi-value small{font-size:13px;color:var(--ink-muted);font-weight:600}
+.kpi-foot{font-size:12px;color:var(--ink-dim);margin-top:4px}
+
+.row{display:grid;gap:13px;margin-bottom:13px}
+.row.cols-2{grid-template-columns:1fr 1fr}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.card-head h3{font-size:15.5px;font-weight:700}
+.card-head .sub{font-size:12px;color:var(--ink-muted);margin-top:2px}
+.card-tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;padding:4px 8px;border-radius:6px;border:1px solid var(--border);color:var(--ink-muted);text-transform:uppercase}
+.chart-wrap{position:relative;height:300px}
+.chart-wrap.tall{height:340px}
+.empty{padding:40px 20px;text-align:center;color:var(--ink-muted);font-size:13.5px}
+.empty svg{width:40px;height:40px;opacity:.4;margin-bottom:10px}
+
+/* ===== Semáforo cards ===== */
+.sem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:13px}
+.sem-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);position:relative}
+.sem-card h4{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.sem-card .resp-sub{font-size:11.5px;color:var(--ink-muted);margin-bottom:13px}
+.sem-lights{display:flex;gap:8px}
+.light{flex:1;border-radius:11px;padding:11px 8px;text-align:center;border:1px solid transparent;cursor:pointer;transition:transform .12s}
+.light:hover{transform:translateY(-2px)}
+.light .n{font-size:22px;font-weight:800;line-height:1}
+.light .l{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.light.r{background:var(--red-soft);color:#b3282c;border-color:#f2cfd0}
+.light.y{background:var(--yellow-soft);color:#9a7400;border-color:#f0e0b0}
+.light.g{background:var(--green-soft);color:#157a41;border-color:#bfe6cf}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.sem-total{position:absolute;top:16px;right:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted)}
+.legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--ink-dim)}
+.legend-row span{display:flex;align-items:center;gap:6px}
+
+/* ===== Tabela / trâmite ===== */
+.table-wrap{overflow-x:auto}
+table.data{width:100%;border-collapse:collapse;font-size:12.5px}
+table.data th{text-align:left;padding:10px 11px;color:var(--ink-muted);font-weight:600;border-bottom:1.5px solid var(--border);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+table.data td{padding:10px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+table.data tr:hover td{background:var(--surface-2)}
+.st-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;display:inline-block}
+.st-aberto{background:var(--red-soft);color:#b3282c}
+.st-tratamento{background:var(--yellow-soft);color:#9a7400}
+.st-ok{background:var(--green-soft);color:#157a41}
+.tag-pill{font-size:11px;background:var(--surface-2);border:1px solid var(--border);padding:2px 8px;border-radius:6px;color:var(--ink-dim);white-space:nowrap}
+.icobtn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;display:inline-grid;place-items:center;cursor:pointer;color:var(--ink-dim)}
+.icobtn:hover{border-color:var(--blue);color:var(--blue)}
+.icobtn.wa:hover{border-color:#25D366;color:#25D366}
+.icobtn svg{width:15px;height:15px}
+.act-row{display:flex;gap:5px;flex-wrap:wrap}
+.tiny-btn{font-size:11px;font-weight:600;padding:5px 9px;border-radius:7px;border:1px solid var(--border);background:#fff;cursor:pointer;color:var(--ink-dim)}
+.tiny-btn:hover{border-color:var(--border-strong);color:var(--ink)}
+.tiny-btn.g:hover{border-color:var(--green);color:var(--green)}
+.tiny-btn.y:hover{border-color:var(--yellow);color:#9a7400}
+
+/* ===== Modal ===== */
+.modal-bg{position:fixed;inset:0;z-index:150;background:rgba(13,31,61,.5);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:34px 18px;overflow-y:auto}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:18px;width:100%;max-width:600px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5);animation:fade .25s}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;background:#fff;border-radius:18px 18px 0 0;z-index:2}
+.modal-head h3{font-size:17px;font-weight:800}
+.modal-head .x{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:18px;color:var(--ink-dim);line-height:1}
+.modal-body{padding:22px 24px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field-req label::after{content:' *';color:var(--red)}
+textarea{resize:vertical;min-height:70px}
+.radio-row{display:flex;gap:10px}
+.radio-chip{flex:1;border:1.5px solid var(--border-strong);border-radius:10px;padding:10px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-dim)}
+.radio-chip.on{border-color:var(--blue);background:var(--blue-100);color:var(--navy)}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.hint-inline{font-size:11.5px;color:var(--ink-muted);margin-top:5px}
+.full{grid-column:1/-1}
+
+/* ===== Admin ===== */
+.adm-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chip-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.chip-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
+.chip-item .name{font-weight:600;font-size:13.5px}
+.chip-item .meta{font-size:11.5px;color:var(--ink-muted)}
+.chip-item .rm{margin-left:auto;color:var(--ink-muted);cursor:pointer;border:none;background:none;font-size:16px}
+.chip-item .rm:hover{color:var(--red)}
+.add-inline{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.add-inline input,.add-inline select{flex:1;min-width:120px}
+.add-inline button{white-space:nowrap}
+.pill-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ptag{font-size:11.5px;padding:4px 9px;border-radius:999px;border:1.5px solid var(--border-strong);cursor:pointer;color:var(--ink-dim);user-select:none}
+.ptag.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.note{background:var(--blue-100);border:1px solid #c5dbf5;color:var(--navy-2);font-size:12.5px;padding:12px 14px;border-radius:11px;line-height:1.55;margin-bottom:16px}
+.note b{font-weight:700}
+
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;z-index:300;opacity:0;transition:all .3s;box-shadow:0 12px 30px -8px rgba(0,0,0,.5)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:820px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.row.cols-2{grid-template-columns:1fr}.adm-grid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.split-txt .s{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <div class="logo-lockup">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v8H3z" stroke="#fff" stroke-width="1.7"/><path d="M14 10h4l3 3v2h-7z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7" cy="17" r="2" fill="#fff"/><circle cx="17" cy="17" r="2" fill="#fff"/></svg>
+      </div>
+      <div>
+        <div class="logo-name">PORTOEX</div>
+        <div class="logo-tag">Transportando Soluções</div>
+      </div>
+    </div>
+    <h1>Controle de Não Conformidades</h1>
+    <div class="sub">Acesse com a senha do administrador ou do seu setor.</div>
+    <div class="field">
+      <label>Senha de acesso</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-hint">Primeiro acesso? Use a senha admin padrão <b>portoex</b> e cadastre os setores no painel Administração.</div>
+    <div class="motto">Nossa rota é ir além das entregas!</div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="topbar">
+    <div class="split-head">
+      <button class="split-half nc active" data-vert="NC" onclick="setVertente('NC')">
+        <span class="split-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v5c0 4.4-3.2 7.5-8 9-4.8-1.5-8-4.6-8-9V7l8-4z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="split-txt"><span class="t">NÃO CONFORMIDADES</span><span class="s">Controle geral · base viva</span></span>
+        <span class="split-badge" id="badgeNC">—</span>
+      </button>
+      <button class="split-half erro" data-vert="ERRO" onclick="setVertente('ERRO')">
+        <span class="split-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l9 16H3L12 3z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4M12 16.5v.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        <span class="split-txt"><span class="t">ERROS OPERACIONAIS INTERNOS</span><span class="s">Base construída do zero</span></span>
+        <span class="split-badge" id="badgeERRO">—</span>
+      </button>
+    </div>
+    <div class="subbar">
+      <div class="brand-mini"><span class="m"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v8H3z" stroke="#fff" stroke-width="1.7"/><path d="M14 10h4l3 3v2h-7z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg></span>PORTOEX</div>
+      <div class="nav" id="nav">
+        <button class="nav-btn active" data-tab="dash" onclick="setTab('dash')">Painel</button>
+        <button class="nav-btn" data-tab="sem" onclick="setTab('sem')">Semáforo</button>
+        <button class="nav-btn" data-tab="tram" onclick="setTab('tram')">Trâmite</button>
+        <button class="nav-btn" data-tab="base" onclick="setTab('base')">Análise da base</button>
+        <button class="nav-btn hidden" id="navAdmin" data-tab="admin" onclick="setTab('admin')">Administração</button>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn-cta" id="btnNew" onclick="openCadastro()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Nova ocorrência</button>
+      <div class="user-chip"><span class="user-avatar" id="uav">A</span><span>Setor: <b id="uname">Admin</b></span></div>
+      <button class="btn-ghost" onclick="logout()">Sair</button>
+    </div>
+  </div>
+
+  <main>
+    <div id="status"></div>
+
+    <!-- PAINEL -->
+    <section class="page active" data-page="dash">
+      <div class="page-head">
+        <div><div class="eyebrow" id="dashEye">Não Conformidades</div><h2 id="dashTitle">Painel de acompanhamento</h2><p id="dashDesc">Visão consolidada das ocorrências, responsáveis mais acionados e situação do tratamento.</p></div>
+        <span class="vertente-tag nc" id="dashVtag">NÃO CONFORMIDADES</span>
+      </div>
+      <div class="kpi-grid" id="kpiDash"></div>
+      <div class="row cols-2">
+        <div class="card"><div class="card-head"><div><h3>Por responsável</h3><div class="sub">Quem mais aparece nas ocorrências</div></div><span class="card-tag">RESPONSÁVEL</span></div><div class="chart-wrap tall"><canvas id="chDashResp"></canvas></div></div>
+        <div class="card"><div class="card-head"><div><h3>Por tipo de ocorrência</h3><div class="sub">Motivos mais recorrentes</div></div><span class="card-tag">TIPO</span></div><div class="chart-wrap tall"><canvas id="chDashTipo"></canvas></div></div>
+      </div>
+      <div class="card"><div class="card-head"><div><h3>Evolução mensal</h3><div class="sub">Volume de ocorrências ao longo do tempo</div></div><span class="card-tag">MÊS</span></div><div class="chart-wrap"><canvas id="chDashMes"></canvas></div></div>
+    </section>
+
+    <!-- SEMÁFORO -->
+    <section class="page" data-page="sem">
+      <div class="page-head">
+        <div><div class="eyebrow">Modelo semáforo</div><h2>Situação por responsável</h2><p>Cada setor tem seus números em resumo. <b style="color:var(--red)">Vermelho</b>: casos em que ele apontou outro setor como responsável. <b style="color:#9a7400">Amarelo</b>: casos que enviaram para ele tratar. <b style="color:var(--green)">Verde</b>: casos com OK de tratamento.</p></div>
+        <span class="vertente-tag nc" id="semVtag">NÃO CONFORMIDADES</span>
+      </div>
+      <div class="legend-row">
+        <span><span class="dot" style="background:var(--red)"></span> Apontou outro setor (aguardando)</span>
+        <span><span class="dot" style="background:var(--yellow)"></span> Recebeu para tratar</span>
+        <span><span class="dot" style="background:var(--green)"></span> Tratamento OK / finalizado</span>
+      </div>
+      <div class="sem-grid" id="semGrid"></div>
+    </section>
+
+    <!-- TRÂMITE -->
+    <section class="page" data-page="tram">
+      <div class="page-head">
+        <div><div class="eyebrow">Fluxo até a finalização</div><h2>Trâmite das ocorrências</h2><p>Acompanhe cada ocorrência da abertura até o encerramento. Acione o setor responsável por e-mail ou WhatsApp.</p></div>
+        <span class="vertente-tag nc" id="tramVtag">NÃO CONFORMIDADES</span>
+      </div>
+      <div class="toolbar">
+        <div class="seg" id="tramFilterSeg">
+          <button class="active" data-f="all" onclick="setTramFilter('all')">Todas</button>
+          <button data-f="aberto" onclick="setTramFilter('aberto')">Abertas</button>
+          <button data-f="tratamento" onclick="setTramFilter('tratamento')">Em tratamento</button>
+          <button data-f="ok" onclick="setTramFilter('ok')">Finalizadas</button>
+        </div>
+        <select class="mini-select" id="tramResp" onchange="renderTram()"><option value="">Todos os responsáveis</option></select>
+        <div class="spacer"></div>
+        <input id="tramSearch" placeholder="Buscar ocorrência, placa, referência…" style="max-width:280px" oninput="renderTram()">
+      </div>
+      <div class="card" style="padding:6px 6px 0"><div class="table-wrap"><table class="data" id="tramTable"></table></div><div id="tramEmpty"></div></div>
+    </section>
+
+    <!-- ANÁLISE DA BASE -->
+    <section class="page" data-page="base">
+      <div class="page-head">
+        <div><div class="eyebrow" id="baseEye">Base viva</div><h2>Análise da base</h2><p id="baseDesc">Estrutura de acesso igual ao projeto original: analise por responsável ou por tipo de ocorrência.</p></div>
+        <span class="vertente-tag nc" id="baseVtag">NÃO CONFORMIDADES</span>
+      </div>
+      <div class="toolbar">
+        <div class="seg" id="baseModeSeg">
+          <button class="active" data-m="resp" onclick="setBaseMode('resp')">Por responsável</button>
+          <button data-m="tipo" onclick="setBaseMode('tipo')">Por tipo de ocorrência</button>
+        </div>
+        <select class="mini-select" id="baseFilter" onchange="renderBase()"></select>
+      </div>
+      <div class="kpi-grid" id="kpiBase"></div>
+      <div class="card"><div class="card-head"><div><h3 id="baseChartTitle">Detalhamento</h3><div class="sub" id="baseChartSub"></div></div><span class="card-tag">CRUZAMENTO</span></div><div class="chart-wrap tall"><canvas id="chBase"></canvas></div></div>
+      <div class="card"><div class="card-head"><div><h3>Dados brutos</h3><div class="sub">Contagem exata</div></div><span class="card-tag">TABELA</span></div><div class="table-wrap"><table class="data" id="baseTable"></table></div></div>
+    </section>
+
+    <!-- ADMIN -->
+    <section class="page" data-page="admin">
+      <div class="page-head">
+        <div><div class="eyebrow">Controle de acessos</div><h2>Administração</h2><p>Cadastre setores e suas senhas, monte grupos de trabalho e defina o nível de visualização de cada um.</p></div>
+      </div>
+      <div class="note"><b>Como funciona:</b> a senha <b>admin</b> vê tudo e gerencia esta tela. Cada setor entra com a própria senha e enxerga conforme o nível: <b>Só o próprio setor</b>, <b>Grupo de trabalho</b> ou <b>Tudo</b>.</div>
+      <div class="adm-grid">
+        <div class="card">
+          <div class="card-head"><div><h3>Setores &amp; senhas</h3><div class="sub">Usuários de acesso por setor</div></div></div>
+          <div class="chip-list" id="admSetores"></div>
+          <div class="add-inline">
+            <select id="admNewResp"></select>
+            <input id="admNewPass" placeholder="Senha do setor">
+          </div>
+          <div class="add-inline">
+            <select id="admNewNivel">
+              <option value="proprio">Nível: só o próprio setor</option>
+              <option value="grupo">Nível: grupo de trabalho</option>
+              <option value="tudo">Nível: tudo</option>
+            </select>
+            <button class="btn-cta" onclick="addSetor()">Adicionar setor</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>Grupos de trabalho</h3><div class="sub">Conjuntos de setores que se enxergam</div></div></div>
+          <div class="chip-list" id="admGrupos"></div>
+          <div class="add-inline"><input id="admNewGrupo" placeholder="Nome do grupo (ex.: Logística)"></div>
+          <div class="hint-inline">Selecione os setores do grupo:</div>
+          <div class="pill-tags" id="admGrupoTags"></div>
+          <div class="add-inline"><button class="btn-cta" onclick="addGrupo()">Criar grupo</button></div>
+        </div>
+      </div>
+      <div class="adm-grid" style="margin-top:13px">
+        <div class="card">
+          <div class="card-head"><div><h3>Senha do administrador</h3><div class="sub">Altere a senha mestra</div></div></div>
+          <div class="add-inline">
+            <input id="admAdminPass" type="password" placeholder="Nova senha admin">
+            <button class="btn-cta" onclick="changeAdminPass()">Salvar</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>Backup &amp; restauração</h3><div class="sub">Guarde setores, grupos e registros num arquivo</div></div></div>
+          <div class="add-inline">
+            <button class="btn-cta" onclick="exportConfig()">Exportar backup</button>
+            <label class="btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center">Restaurar backup<input type="file" accept="application/json" onchange="importConfig(this)" style="display:none"></label>
+          </div>
+          <div class="hint-inline">Antes de abrir uma versão nova do sistema, exporte o backup aqui e restaure depois — assim seus cadastros nunca se perdem.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== MODAL CADASTRO ===== -->
+<div class="modal-bg" id="modalCad">
+  <div class="modal">
+    <div class="modal-head"><h3 id="cadTitle">Nova ocorrência</h3><button class="x" onclick="closeModal('modalCad')">×</button></div>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="field field-req full"><label>Ocorrência (descrição dos fatos)</label><textarea id="fOcorr" placeholder="Descreva o que aconteceu…"></textarea></div>
+        <div class="field"><label>Data da ocorrência</label><input id="fData" type="date"><div class="hint-inline">Data do cadastro é registrada automaticamente.</div></div>
+        <div class="field"><label>Placa</label><input id="fPlaca" placeholder="ABC1D23"></div>
+        <div class="field field-req"><label>Setor responsável</label><select id="fResp"></select></div>
+        <div class="field field-req"><label>Tipo de ocorrência</label><select id="fTipo"></select></div>
+        <div class="field"><label>Referência</label><input id="fRef" placeholder="NF / Minuta / Manifesto / D.I."></div>
+        <div class="field"><label>Gerou custo? (R$)</label><input id="fCusto" placeholder="0,00" inputmode="decimal"></div>
+        <div class="field full"><label>Observações</label><textarea id="fObs" placeholder="Informações complementares…"></textarea></div>
+        <div class="field full"><label>Informar ao setor?</label>
+          <div class="radio-row">
+            <div class="radio-chip on" id="infS" onclick="setInformar(true)">Sim — acionar responsável</div>
+            <div class="radio-chip" id="infN" onclick="setInformar(false)">Não</div>
+          </div>
+          <div class="hint-inline">Se "Sim", aparecerão os ícones de e-mail e WhatsApp no trâmite para acionar o setor.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeModal('modalCad')">Cancelar</button>
+      <button class="btn-cta" id="cadSave" onclick="saveCadastro()">Registrar ocorrência</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   PORTOEX · CONTROLE DE NÃO CONFORMIDADES
+   Protótipo local (localStorage) · NC lê planilha ao vivo
+   ============================================================ */
+const STORE_KEY = 'portoex_nc_v1';
+const MES_ABBR = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+/* --- Planilha externa de Ocorrências (mesma do projeto paralelo) --- */
+const SHEET_ID_OCORRENCIAS = '1D7C9_0iKZypa8F7nh_iOtxaTZArMchdj';
+const SHEET_NAME_OCORRENCIAS = 'Ocorrências';
+
+/* --- Listas canônicas --- */
+const RESPONSAVEIS = [
+  'Sem responsável direto','Atendimento','Operação / Log. Externa','Expedição / Log. Interna',
+  'Motorista','Comercial','Controladoria','Cliente','Financeiro','G.R. / Frota','Estoque',
+  'Recursos Humanos','Filial'
+];
+const TIPOS = [
+  'Veículo quebrou','Endereço de entrega incorreto','Não coube no veículo',
+  'Paletes devolução não carregados','Extravio parcial','Extravio total',
+  'Extravio (entrega no endereço errado)','Não coletada','Já coletada anteriormente',
+  'Atraso de senha','Endereço de coleta incorreto','Não liberada pelo armazém',
+  'Armazém não liberou carga','Armazém sem espaço para recebimento','Recusada por falta de agendamento',
+  'Reprogramado','Erro de programação do Gestor da Conta','Entrega recusada','Não entregue',
+  'Não localizada na base','Entrega não realizada na data de agendamento','Cliente ausente',
+  'Erro de carregamento','Não carregada no veículo','Ordem de carregamento não respeitada',
+  'Sem emissão','NF não liberada','Erro de emissão do CT-e','Demora na liberação de coleta',
+  'No show de agendamento','Operação cancelada','Já entregue anteriormente',
+  'Não chegou da transferência a tempo','Hora parada','Demora na descarga','Falha de comunicação',
+  'Troca de mercadorias','Veículo não descarregado','Erro de conferência','Atraso no embarque',
+  'Documentação não colocada no veículo','Ineficiência cliente'
+];
+
+/* ============ ESTADO / PERSISTÊNCIA ============ */
+function defaultState(){
+  return {
+    adminPass:'portoex',
+    setores:[],            // {resp, pass, nivel, grupo}
+    grupos:[],             // {nome, setores:[]}
+    registros:[]           // {id,vert,ocorr,data,dataCad,placa,resp,tipo,ref,obs,custo,informar,criadoPor,status}
+  };
+}
+let STATE = load();
+function load(){ try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)); return s&&s.registros?s:defaultState(); }catch(e){ return defaultState(); } }
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); }catch(e){ try{toast('Atenção: o navegador bloqueou o salvamento local. Use "Exportar backup" para não perder os dados.');}catch(_){} } }
+
+/* ============ SESSÃO ============ */
+let SESSION = null; // {role:'admin'|'setor', name, nivel, grupo}
+let VERT = 'NC';
+let TAB = 'dash';
+let SHEET = null;   // dados da planilha (buildOcorrencias)
+let tramFilter='all', baseMode='resp', informarFlag=true;
+
+/* ============ LOGIN ============ */
+function doLogin(){
+  const p = document.getElementById('loginPass').value.trim();
+  const err = document.getElementById('loginErr');
+  if(!p){ err.textContent='Digite a senha.'; return; }
+  if(p===STATE.adminPass){ SESSION={role:'admin',name:'Admin',nivel:'tudo',grupo:null}; enterApp(); return; }
+  const s = STATE.setores.find(x=>x.pass===p);
+  if(s){ SESSION={role:'setor',name:s.resp,nivel:s.nivel,grupo:s.grupo}; enterApp(); return; }
+  err.textContent='Senha não reconhecida.';
+}
+function logout(){ SESSION=null; document.getElementById('app').classList.remove('on'); document.getElementById('login').style.display='grid'; document.getElementById('loginPass').value=''; document.getElementById('loginErr').textContent=''; }
+
+function enterApp(){
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').classList.add('on');
+  document.getElementById('uname').textContent = SESSION.name;
+  document.getElementById('uav').textContent = SESSION.name[0].toUpperCase();
+  document.getElementById('navAdmin').classList.toggle('hidden', SESSION.role!=='admin');
+  document.getElementById('loginErr').textContent='';
+  fillSelectsOnce();
+  loadSheet();
+  setVertente('NC');
+  renderAdmin();
+}
+
+/* ============ VERTENTE (NC / ERRO) ============ */
+function setVertente(v){
+  VERT=v;
+  document.querySelectorAll('.split-half').forEach(b=>b.classList.toggle('active', b.dataset.vert===v));
+  const isErro = v==='ERRO';
+  document.querySelectorAll('.vertente-tag').forEach(t=>{ t.className='vertente-tag '+(isErro?'erro':'nc'); t.textContent = isErro?'ERROS OPERACIONAIS INTERNOS':'NÃO CONFORMIDADES'; });
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('erro-active', isErro && b.classList.contains('active')));
+  document.getElementById('btnNew').className='btn-cta'+(isErro?' erro':'');
+  document.querySelectorAll('.seg').forEach(s=>s.classList.toggle('erro', isErro));
+  document.getElementById('dashEye').textContent = isErro?'Erros Operacionais Internos':'Não Conformidades';
+  document.getElementById('baseEye').textContent = isErro?'Base local':'Base viva';
+  document.getElementById('baseDesc').textContent = isErro
+    ? 'Base construída do zero. Analise os erros operacionais por responsável ou por tipo.'
+    : 'Estrutura de acesso igual ao projeto original: analise por responsável ou por tipo de ocorrência.';
+  updateBadges();
+  renderAll();
+}
+function updateBadges(){
+  const nc = countVert('NC'), er = countVert('ERRO');
+  document.getElementById('badgeNC').textContent = nc + (SHEET?(' + '+SHEET.total+' base'):'');
+  document.getElementById('badgeERRO').textContent = er;
+}
+function countVert(v){ return visibleReg().filter(r=>r.vert===v).length; }
+
+/* ============ NAV / ABAS ============ */
+function setTab(t){
+  TAB=t;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
+  document.querySelectorAll('.nav-btn.active').forEach(b=>b.classList.toggle('erro-active', VERT==='ERRO'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active', p.dataset.page===t));
+  renderAll();
+}
+
+/* ============ VISIBILIDADE (níveis) ============ */
+function canSee(resp){
+  if(!SESSION || SESSION.role==='admin' || SESSION.nivel==='tudo') return true;
+  if(SESSION.nivel==='proprio') return resp===SESSION.name;
+  if(SESSION.nivel==='grupo'){
+    const g = STATE.grupos.find(g=>g.nome===SESSION.grupo);
+    return g ? (g.setores.includes(resp) || resp===SESSION.name) : resp===SESSION.name;
+  }
+  return true;
+}
+// registros visíveis: onde o usuário é criador, responsável, ou tem permissão de ver o responsável
+function visibleReg(){
+  return STATE.registros.filter(r=>{
+    if(SESSION.role==='admin'||SESSION.nivel==='tudo') return true;
+    if(r.criadoPor===SESSION.name) return true;
+    return canSee(r.resp);
+  });
+}
+
+/* ============ CARREGAR PLANILHA (NC base viva) ============ */
+const csvUrl = (sheetName) => `https://docs.google.com/spreadsheets/d/${SHEET_ID_OCORRENCIAS}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}`;
+function setStatus(msg,isErr){ const s=document.getElementById('status'); s.textContent=msg; s.className='show'+(isErr?' error':''); }
+function clearStatus(){ document.getElementById('status').className=''; }
+
+async function loadSheet(){
+  setStatus('Carregando a base viva de Não Conformidades…',false);
+  try{
+    let rows;
+    try{ rows = await loadViaFetch(); }
+    catch(e){ rows = await loadViaJSONP(); }
+    SHEET = buildOcorrencias(rows);
+    clearStatus();
+  }catch(err){
+    SHEET=null;
+    setStatus('Não consegui carregar a planilha viva ('+err.message+'). O restante do sistema funciona normalmente; a base de NC aparece assim que a planilha estiver acessível.',true);
+  }
+  updateBadges(); renderAll();
+}
+async function loadViaFetch(){
+  const res = await fetch(csvUrl(SHEET_NAME_OCORRENCIAS),{cache:'no-store'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const text = await res.text();
+  return Papa.parse(text.trim(),{skipEmptyLines:false}).data;
+}
+function loadViaJSONP(){
+  return new Promise((resolve,reject)=>{
+    const cb='gviz_'+Math.random().toString(36).slice(2);
+    const to=setTimeout(()=>{cleanup();reject(new Error('tempo esgotado'));},15000);
+    function cleanup(){clearTimeout(to);delete window[cb];if(sc.parentNode)sc.parentNode.removeChild(sc);}
+    window[cb]=function(dt){
+      cleanup();
+      try{
+        const RE=/^Date\((\d+),\s*(\d+),\s*(\d+)/;
+        const rows=(dt.table.rows||[]).map(r=>(r.c||[]).map(c=>{
+          if(!c)return'';
+          const v=(c.v!=null)?String(c.v):'';
+          const dm=v.match(RE);
+          if(dm)return String(+dm[3]).padStart(2,'0')+'/'+String(+dm[2]+1).padStart(2,'0')+'/'+dm[1];
+          if(c.f!=null)return String(c.f);
+          return v;
+        }));
+        const cols=dt.table.cols||[];
+        if(cols.length&&cols.some(c=>c&&c.label)) rows.unshift(cols.map(c=>(c&&c.label)?String(c.label):''));
+        resolve(rows);
+      }catch(e){reject(e);}
+    };
+    const sc=document.createElement('script');
+    sc.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID_OCORRENCIAS}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME_OCORRENCIAS)}&tqx=out:json;responseHandler:${cb}&_=${Date.now()}`;
+    sc.onerror=()=>{cleanup();reject(new Error('falha de rede'));};
+    document.body.appendChild(sc);
+  });
+}
+// Colunas: A=DATA (cabeçalho em branco na planilha), B=PLACA, C=RESPONSÁVEL,
+// D=TIPO, E=REFERÊNCIA. Não dependemos do cabeçalho: consideramos linha de
+// dados toda aquela cuja 1ª coluna for uma data DD/MM/AAAA. Assim ignoramos
+// automaticamente o cabeçalho e a tabela dinâmica que fica à direita na aba.
+function buildOcorrencias(rows){
+  const RE=/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
+  const byResp=new Map(),byTipo=new Map(),byMonth=new Map(),cross=new Map(),records=[];
+  let total=0;
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i]||[]; const data=(r[0]||'').trim(); const m=data.match(RE); if(!m)continue;
+    total++;
+    const resp=(r[2]||'').trim()||'Sem responsável direto';
+    const tipo=(r[3]||'').trim()||'Não especificado';
+    byResp.set(resp,(byResp.get(resp)||0)+1);
+    byTipo.set(tipo,(byTipo.get(tipo)||0)+1);
+    if(!cross.has(resp))cross.set(resp,new Map());
+    const tm=cross.get(resp); tm.set(tipo,(tm.get(tipo)||0)+1);
+    let y=parseInt(m[3],10); if(m[3].length===2)y+=2000;
+    const mo=parseInt(m[2],10); const mk=y+'-'+String(mo).padStart(2,'0');
+    byMonth.set(mk,(byMonth.get(mk)||0)+1);
+    records.push({resp,tipo,mes:MES_ABBR[mo-1]+'/'+String(y).slice(2),data,placa:(r[1]||'').trim(),ref:(r[4]||'').trim(),y,mo});
+  }
+  const mk=[...byMonth.keys()].sort();
+  return {
+    total,
+    respEntries:[...byResp.entries()].sort((a,b)=>b[1]-a[1]),
+    tipoEntries:[...byTipo.entries()].sort((a,b)=>b[1]-a[1]),
+    meses:mk.map(k=>{const[y,mm]=k.split('-');return MES_ABBR[+mm-1]+'/'+String(y).slice(2);}),
+    monthCounts:mk.map(k=>byMonth.get(k)),
+    cross, records
+  };
+}
+
+/* ============ DADOS COMBINADOS POR VERTENTE ============ */
+// Para NC: base viva (SHEET) + registros locais NC. Para ERRO: só registros locais.
+function dataForVert(){
+  const local = visibleReg().filter(r=>r.vert===VERT);
+  const byResp=new Map(), byTipo=new Map(), byMonth=new Map();
+  function add(resp,tipo,mk){
+    if(canSee(resp)===false && SESSION.role!=='admin' && SESSION.nivel!=='tudo'){ /* respeita nível para base viva */ return; }
+    byResp.set(resp,(byResp.get(resp)||0)+1);
+    byTipo.set(tipo,(byTipo.get(tipo)||0)+1);
+    if(mk)byMonth.set(mk,(byMonth.get(mk)||0)+1);
+  }
+  if(VERT==='NC' && SHEET){
+    SHEET.records.forEach(r=>add(r.resp,r.tipo,r.y+'-'+String(r.mo).padStart(2,'0')));
+  }
+  local.forEach(r=>{
+    const d=r.data||r.dataCad; const m=(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const mk = m?(m[1]+'-'+m[2]):null;
+    add(r.resp,r.tipo,mk);
+  });
+  const mk=[...byMonth.keys()].sort();
+  return {
+    total:[...byResp.values()].reduce((a,b)=>a+b,0),
+    respEntries:[...byResp.entries()].sort((a,b)=>b[1]-a[1]),
+    tipoEntries:[...byTipo.entries()].sort((a,b)=>b[1]-a[1]),
+    meses:mk.map(k=>{const[y,mm]=k.split('-');return MES_ABBR[+mm-1]+'/'+String(y).slice(2);}),
+    monthCounts:mk.map(k=>byMonth.get(k))
+  };
+}
+
+/* ============ RENDER GERAL ============ */
+let charts={};
+function mkChart(id,cfg){ if(charts[id])charts[id].destroy(); const c=document.getElementById(id); if(!c)return; charts[id]=new Chart(c.getContext('2d'),cfg); }
+function fmt(n){ return (n||0).toLocaleString('pt-BR'); }
+const COL = ()=> VERT==='ERRO' ? '#e5484d' : '#2E6BC6';
+const gridColor='rgba(16,35,61,.07)';
+
+function renderAll(){ updateBadges(); if(TAB==='dash')renderDash(); if(TAB==='sem')renderSem(); if(TAB==='tram')renderTram(); if(TAB==='base')renderBase(); }
+
+/* ---- PAINEL ---- */
+function renderDash(){
+  const d = dataForVert();
+  const grid=document.getElementById('kpiDash'); grid.innerHTML='';
+  const topR=d.respEntries[0]||['—',0], topT=d.tipoEntries[0]||['—',0];
+  const abertas = visibleReg().filter(r=>r.vert===VERT&&r.status!=='ok').length;
+  const finaliz = visibleReg().filter(r=>r.vert===VERT&&r.status==='ok').length;
+  grid.appendChild(kpi('Total de ocorrências',fmt(d.total),VERT==='NC'?'base viva + cadastros':'cadastros locais','navy'));
+  grid.appendChild(kpi('Responsável mais acionado',topR[0],fmt(topR[1])+' ocorrências','red'));
+  grid.appendChild(kpi('Em aberto / tratamento',fmt(abertas),'aguardando encerramento','yellow'));
+  grid.appendChild(kpi('Finalizadas (OK)',fmt(finaliz),'tratamento concluído','green'));
+  const rEnt=d.respEntries.slice(0,10), tEnt=d.tipoEntries.slice(0,10);
+  hbar('chDashResp',rEnt);
+  hbar('chDashTipo',tEnt);
+  mkChart('chDashMes',{
+    type:'line',
+    data:{labels:d.meses,datasets:[{label:'Ocorrências',data:d.monthCounts,borderColor:COL(),backgroundColor:'rgba(46,107,198,.12)',fill:true,tension:.3,pointRadius:3,pointBackgroundColor:COL()}]},
+    options:baseOpts(false)
+  });
+}
+function hbar(id,entries){
+  mkChart(id,{
+    type:'bar',
+    data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:COL(),borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{precision:0}},y:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+}
+function baseOpts(legend){ return {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:legend}},scales:{x:{grid:{display:false}},y:{grid:{color:gridColor},ticks:{precision:0}}}}; }
+function kpi(label,val,foot,cls){ const d=document.createElement('div'); d.className='kpi '+(cls||''); d.innerHTML=`<div class="kpi-label">${label}</div><div class="kpi-value">${val}</div><div class="kpi-foot">${foot}</div>`; return d; }
+
+/* ---- SEMÁFORO ---- */
+function semData(){
+  // Considera apenas registros locais (têm criadoPor/status). Base viva não tem trâmite.
+  const regs = visibleReg().filter(r=>r.vert===VERT);
+  const map=new Map();
+  function ensure(n){ if(!map.has(n))map.set(n,{r:0,y:0,g:0,total:0}); return map.get(n); }
+  regs.forEach(r=>{
+    if(r.status==='ok'){
+      // verde para quem criou e para o responsável
+      ensure(r.resp).g++; ensure(r.resp).total++;
+      if(r.criadoPor && r.criadoPor!==r.resp){ ensure(r.criadoPor).g++; ensure(r.criadoPor).total++; }
+    } else {
+      // amarelo: responsável recebeu para tratar
+      ensure(r.resp).y++; ensure(r.resp).total++;
+      // vermelho: quem criou apontou outro setor
+      if(r.criadoPor && r.criadoPor!==r.resp){ ensure(r.criadoPor).r++; ensure(r.criadoPor).total++; }
+    }
+  });
+  return [...map.entries()].filter(([n])=>canSee(n)).sort((a,b)=>b[1].total-a[1].total);
+}
+function renderSem(){
+  const el=document.getElementById('semGrid');
+  const data=semData();
+  if(!data.length){ el.innerHTML=emptyBox('Nenhuma ocorrência com trâmite ainda. Cadastre uma ocorrência e aponte o setor responsável para o semáforo ganhar vida.'); return; }
+  el.innerHTML='';
+  data.forEach(([nome,v])=>{
+    const c=document.createElement('div'); c.className='sem-card';
+    c.innerHTML=`<div class="sem-total">${v.total} caso(s)</div>
+      <h4><span class="dot" style="background:${v.r?'var(--red)':v.y?'var(--yellow)':'var(--green)'}"></span>${nome}</h4>
+      <div class="resp-sub">Resumo do setor</div>
+      <div class="sem-lights">
+        <div class="light r" onclick="goTram('${enc(nome)}','aberto')"><div class="n">${v.r}</div><div class="l">Apontou outro</div></div>
+        <div class="light y" onclick="goTram('${enc(nome)}','')"><div class="n">${v.y}</div><div class="l">Para tratar</div></div>
+        <div class="light g" onclick="goTram('${enc(nome)}','ok')"><div class="n">${v.g}</div><div class="l">OK</div></div>
+      </div>`;
+    el.appendChild(c);
+  });
+}
+function enc(s){return s.replace(/'/g,"\\'");}
+function goTram(nome,st){ setTab('tram'); document.querySelector('.nav-btn[data-tab="tram"]'); document.getElementById('tramResp').value=nome; setTramFilter(st==='ok'?'ok':st==='aberto'?'aberto':'all'); }
+
+/* ---- TRÂMITE ---- */
+function setTramFilter(f){ tramFilter=f; document.querySelectorAll('#tramFilterSeg button').forEach(b=>b.classList.toggle('active',b.dataset.f===f)); renderTram(); }
+function renderTram(){
+  const tb=document.getElementById('tramTable'), emp=document.getElementById('tramEmpty');
+  const respF=document.getElementById('tramResp').value;
+  const q=(document.getElementById('tramSearch').value||'').toLowerCase();
+  let regs=visibleReg().filter(r=>r.vert===VERT);
+  if(tramFilter!=='all')regs=regs.filter(r=>r.status===tramFilter);
+  if(respF)regs=regs.filter(r=>r.resp===respF||r.criadoPor===respF);
+  if(q)regs=regs.filter(r=>(r.ocorr+' '+r.placa+' '+r.ref+' '+r.tipo).toLowerCase().includes(q));
+  regs.sort((a,b)=>(b.id-a.id));
+  if(!regs.length){ tb.innerHTML=''; emp.innerHTML=emptyBox('Nenhuma ocorrência neste filtro. Clique em “Nova ocorrência” para registrar.'); return; }
+  emp.innerHTML='';
+  tb.innerHTML=`<thead><tr><th>Ocorrência</th><th>Data</th><th>Placa</th><th>Responsável</th><th>Tipo</th><th>Ref.</th><th>Custo</th><th>Status</th><th>Ações</th></tr></thead><tbody>${regs.map(rowTram).join('')}</tbody>`;
+}
+function rowTram(r){
+  const stCls = r.status==='ok'?'st-ok':r.status==='tratamento'?'st-tratamento':'st-aberto';
+  const stTxt = r.status==='ok'?'Finalizada':r.status==='tratamento'?'Em tratamento':'Aberta';
+  const custo = r.custo? 'R$ '+r.custo : '—';
+  const acao = acionarBtns(r);
+  let adv='';
+  if(r.status!=='ok'){
+    adv = `<button class="tiny-btn y" onclick="advance(${r.id},'tratamento')">Em tratamento</button><button class="tiny-btn g" onclick="advance(${r.id},'ok')">Dar OK</button>`;
+  } else {
+    adv = `<button class="tiny-btn" onclick="advance(${r.id},'aberto')">Reabrir</button>`;
+  }
+  return `<tr>
+    <td style="max-width:260px"><b>${esc(r.ocorr||'—')}</b>${r.obs?`<div style="color:var(--ink-muted);font-size:11.5px;margin-top:3px">${esc(r.obs)}</div>`:''}<div style="font-size:11px;color:var(--ink-muted);margin-top:4px">por ${esc(r.criadoPor)}</div></td>
+    <td>${fmtData(r.data)}</td><td>${esc(r.placa)||'—'}</td>
+    <td><span class="tag-pill">${esc(r.resp)}</span></td>
+    <td>${esc(r.tipo)}</td><td>${esc(r.ref)||'—'}</td><td>${custo}</td>
+    <td><span class="st-badge ${stCls}">${stTxt}</span></td>
+    <td><div class="act-row">${acao}${adv}</div></td>
+  </tr>`;
+}
+function acionarBtns(r){
+  if(!r.informar) return '';
+  const msg = encodeURIComponent(`Ocorrência PORTOEX (${VERT==='NC'?'Não Conformidade':'Erro Operacional'})\nResponsável: ${r.resp}\nTipo: ${r.tipo}\nPlaca: ${r.placa||'-'}\nRef: ${r.ref||'-'}\nDescrição: ${r.ocorr}`);
+  const mail=`mailto:?subject=${encodeURIComponent('Ocorrência PORTOEX — '+r.tipo)}&body=${msg}`;
+  const wa=`https://wa.me/?text=${msg}`;
+  return `<a class="icobtn" title="Enviar por e-mail" href="${mail}"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18v12H3z" stroke="currentColor" stroke-width="1.6"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="1.6"/></svg></a>
+  <a class="icobtn wa" title="Enviar por WhatsApp" href="${wa}" target="_blank"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20l1.4-4A8 8 0 1112 20a8 8 0 01-4.6-1.4L4 20z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 9c0 3 3 6 6 6l1.2-1.6-2-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-2L9 9z" fill="currentColor"/></svg></a>`;
+}
+function advance(id,st){ const r=STATE.registros.find(x=>x.id===id); if(!r)return; r.status=st; save(); toast(st==='ok'?'Ocorrência finalizada (OK).':st==='tratamento'?'Marcada em tratamento.':'Ocorrência reaberta.'); renderAll(); }
+
+/* ---- ANÁLISE DA BASE ---- */
+function setBaseMode(m){ baseMode=m; document.querySelectorAll('#baseModeSeg button').forEach(b=>b.classList.toggle('active',b.dataset.m===m)); fillBaseFilter(); renderBase(); }
+function fillBaseFilter(){
+  const sel=document.getElementById('baseFilter'); const d=dataForVert();
+  const list = baseMode==='resp'? d.respEntries : d.tipoEntries;
+  sel.innerHTML='<option value="">'+(baseMode==='resp'?'Todos os responsáveis':'Todos os tipos')+'</option>'+list.map(e=>`<option>${esc(e[0])}</option>`).join('');
+}
+function renderBase(){
+  const d=dataForVert();
+  const grid=document.getElementById('kpiBase'); grid.innerHTML='';
+  const sel=document.getElementById('baseFilter').value;
+  const primary = baseMode==='resp'? d.respEntries : d.tipoEntries;
+  grid.appendChild(kpi('Total no recorte',fmt(d.total),VERT==='NC'?'base viva + cadastros':'cadastros locais','navy'));
+  grid.appendChild(kpi(baseMode==='resp'?'Responsáveis distintos':'Tipos distintos',fmt(primary.length),'categorias','navy'));
+  const top=primary[0]||['—',0];
+  grid.appendChild(kpi(baseMode==='resp'?'Responsável nº 1':'Tipo nº 1',top[0],fmt(top[1])+' ocorrências','red'));
+  const pct = d.total? Math.round(top[1]/d.total*100):0;
+  grid.appendChild(kpi('Participação do nº 1',pct+'%','do total do recorte','yellow'));
+
+  // gráfico cruzamento
+  document.getElementById('baseChartTitle').textContent = baseMode==='resp'?'Responsável × Tipo':'Tipo × Responsável';
+  let entries, sub;
+  if(!sel){
+    entries = primary.slice(0,14); sub='Visão geral — selecione um item para cruzar';
+  } else {
+    entries = crossFor(baseMode,sel); sub = baseMode==='resp'?('Tipos de ocorrência de '+sel):('Responsáveis do tipo '+sel);
+  }
+  document.getElementById('baseChartSub').textContent=sub;
+  hbar('chBase',entries.slice(0,14));
+  const tb=document.getElementById('baseTable');
+  tb.innerHTML=`<thead><tr><th>${sel?(baseMode==='resp'?'Tipo':'Responsável'):(baseMode==='resp'?'Responsável':'Tipo')}</th><th>Ocorrências</th><th>%</th></tr></thead><tbody>${
+    entries.map(e=>`<tr><td>${esc(e[0])}</td><td>${fmt(e[1])}</td><td>${d.total?Math.round(e[1]/entries.reduce((a,b)=>a+b[1],0)*100):0}%</td></tr>`).join('')
+  }</tbody>`;
+}
+function crossFor(mode,sel){
+  // usa SHEET.cross (NC) + registros locais
+  const map=new Map();
+  function add(a,b){ map.set(b,(map.get(b)||0)+1); }
+  if(VERT==='NC'&&SHEET){
+    SHEET.records.forEach(r=>{
+      if(mode==='resp'&&r.resp===sel)add(r.resp,r.tipo);
+      if(mode==='tipo'&&r.tipo===sel)add(r.tipo,r.resp);
+    });
+  }
+  visibleReg().filter(r=>r.vert===VERT).forEach(r=>{
+    if(mode==='resp'&&r.resp===sel)add(r.resp,r.tipo);
+    if(mode==='tipo'&&r.tipo===sel)add(r.tipo,r.resp);
+  });
+  return [...map.entries()].sort((a,b)=>b[1]-a[1]);
+}
+
+/* ============ CADASTRO ============ */
+function fillSelectsOnce(){
+  const opt=(a)=>a.map(x=>`<option>${esc(x)}</option>`).join('');
+  document.getElementById('fResp').innerHTML='<option value="" disabled selected>Selecione…</option>'+opt(RESPONSAVEIS);
+  document.getElementById('fTipo').innerHTML='<option value="" disabled selected>Selecione…</option>'+opt(TIPOS);
+  document.getElementById('tramResp').innerHTML='<option value="">Todos os responsáveis</option>'+opt(RESPONSAVEIS);
+  document.getElementById('admNewResp').innerHTML=opt(RESPONSAVEIS);
+  fillBaseFilter();
+}
+function setInformar(v){ informarFlag=v; document.getElementById('infS').classList.toggle('on',v); document.getElementById('infN').classList.toggle('on',!v); }
+function openCadastro(){
+  document.getElementById('cadTitle').textContent = VERT==='NC'?'Nova Não Conformidade':'Novo Erro Operacional';
+  document.getElementById('fData').value = new Date().toISOString().slice(0,10);
+  ['fOcorr','fPlaca','fRef','fObs','fCusto'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fResp').selectedIndex=0; document.getElementById('fTipo').selectedIndex=0;
+  setInformar(true);
+  document.getElementById('cadSave').className='btn-cta'+(VERT==='ERRO'?' erro':'');
+  document.getElementById('modalCad').classList.add('on');
+}
+function closeModal(id){ document.getElementById(id).classList.remove('on'); }
+function saveCadastro(){
+  const ocorr=document.getElementById('fOcorr').value.trim();
+  const resp=document.getElementById('fResp').value;
+  const tipo=document.getElementById('fTipo').value;
+  if(!ocorr){ toast('Descreva a ocorrência.'); return; }
+  if(!resp){ toast('Selecione o setor responsável.'); return; }
+  if(!tipo){ toast('Selecione o tipo de ocorrência.'); return; }
+  STATE.registros.push({
+    id:Date.now(), vert:VERT, ocorr,
+    data:document.getElementById('fData').value,
+    dataCad:new Date().toISOString(),
+    placa:document.getElementById('fPlaca').value.trim().toUpperCase(),
+    resp, tipo,
+    ref:document.getElementById('fRef').value.trim(),
+    obs:document.getElementById('fObs').value.trim(),
+    custo:normMoney(document.getElementById('fCusto').value),
+    informar:informarFlag,
+    criadoPor:SESSION.name==='Admin'?resp:SESSION.name,
+    status:'aberto'
+  });
+  save(); closeModal('modalCad');
+  toast('Ocorrência registrada!'+(informarFlag?' Acione o setor no Trâmite.':''));
+  renderAll();
+}
+function normMoney(v){ v=(v||'').trim(); if(!v)return''; return v.replace(/[^\d.,]/g,''); }
+
+/* ============ ADMIN ============ */
+function renderAdmin(){
+  if(!SESSION||SESSION.role!=='admin')return;
+  // setores
+  const cs=document.getElementById('admSetores');
+  cs.innerHTML = STATE.setores.length? STATE.setores.map((s,i)=>`
+    <div class="chip-item"><div><div class="name">${esc(s.resp)}</div><div class="meta">senha: ${esc(s.pass)} · nível: ${nivelLabel(s.nivel)}${s.grupo?(' · grupo: '+esc(s.grupo)):''}</div></div><button class="rm" onclick="rmSetor(${i})">×</button></div>`).join('')
+    : '<div class="empty" style="padding:18px">Nenhum setor cadastrado ainda.</div>';
+  // grupos
+  const cg=document.getElementById('admGrupos');
+  cg.innerHTML = STATE.grupos.length? STATE.grupos.map((g,i)=>`
+    <div class="chip-item"><div><div class="name">${esc(g.nome)}</div><div class="meta">${g.setores.length} setor(es): ${g.setores.map(esc).join(', ')||'—'}</div></div><button class="rm" onclick="rmGrupo(${i})">×</button></div>`).join('')
+    : '<div class="empty" style="padding:18px">Nenhum grupo criado.</div>';
+  // tags de setores p/ grupo
+  const tg=document.getElementById('admGrupoTags');
+  tg.innerHTML=RESPONSAVEIS.map(r=>`<span class="ptag" data-r="${esc(r)}" onclick="this.classList.toggle('on')">${esc(r)}</span>`).join('');
+  // grupos disponíveis no add setor (via prompt simplificado abaixo)
+}
+function nivelLabel(n){ return n==='tudo'?'tudo':n==='grupo'?'grupo de trabalho':'só o próprio setor'; }
+function addSetor(){
+  const resp=document.getElementById('admNewResp').value;
+  const pass=document.getElementById('admNewPass').value.trim();
+  const nivel=document.getElementById('admNewNivel').value;
+  if(!pass){ toast('Defina uma senha para o setor.'); return; }
+  if(STATE.setores.find(s=>s.resp===resp)){ toast('Esse setor já tem acesso.'); return; }
+  let grupo=null;
+  if(nivel==='grupo'){
+    if(!STATE.grupos.length){ toast('Crie um grupo de trabalho primeiro.'); return; }
+    grupo=STATE.grupos[0].nome; // padrão: primeiro grupo (ajustável)
+    const g = STATE.grupos.find(g=>g.nome===grupo);
+    if(g && !g.setores.includes(resp)) g.setores.push(resp);
+  }
+  STATE.setores.push({resp,pass,nivel,grupo});
+  save(); document.getElementById('admNewPass').value=''; renderAdmin(); toast('Setor adicionado.');
+}
+function rmSetor(i){ STATE.setores.splice(i,1); save(); renderAdmin(); }
+function addGrupo(){
+  const nome=document.getElementById('admNewGrupo').value.trim();
+  if(!nome){ toast('Dê um nome ao grupo.'); return; }
+  const setores=[...document.querySelectorAll('#admGrupoTags .ptag.on')].map(t=>t.dataset.r);
+  STATE.grupos.push({nome,setores});
+  save(); document.getElementById('admNewGrupo').value=''; renderAdmin(); toast('Grupo criado.');
+}
+function rmGrupo(i){ STATE.grupos.splice(i,1); save(); renderAdmin(); }
+function changeAdminPass(){ const v=document.getElementById('admAdminPass').value.trim(); if(v.length<3){toast('Senha muito curta.');return;} STATE.adminPass=v; save(); document.getElementById('admAdminPass').value=''; toast('Senha admin atualizada.'); }
+function exportConfig(){
+  const blob=new Blob([JSON.stringify(STATE,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='portoex-nc-backup.json'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},100);
+  toast('Backup exportado ('+STATE.setores.length+' setor(es), '+STATE.registros.length+' registro(s)).');
+}
+function importConfig(input){
+  const f=input.files&&input.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+    const d=JSON.parse(rd.result);
+    if(!d||!Array.isArray(d.setores)||!Array.isArray(d.registros)) throw new Error('estrutura');
+    STATE=Object.assign(defaultState(),d); save(); renderAdmin(); renderAll();
+    toast('Backup restaurado: '+STATE.setores.length+' setor(es), '+STATE.registros.length+' registro(s).');
+  }catch(e){ toast('Arquivo de backup inválido.'); } };
+  rd.readAsText(f); input.value='';
+}
+
+/* ============ UTIL ============ */
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtData(d){ if(!d)return'—'; const m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:d; }
+function emptyBox(msg){ return `<div class="empty"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16v13H4z" stroke="currentColor" stroke-width="1.5"/><path d="M4 7l3-3h10l3 3" stroke="currentColor" stroke-width="1.5"/></svg><div>${msg}</div></div>`; }
+let toastTO;
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastTO); toastTO=setTimeout(()=>t.classList.remove('on'),2600); }
+
+window.addEventListener('resize',()=>{ if(SESSION) renderAll(); });
+</script>
+</body>
+</html>
