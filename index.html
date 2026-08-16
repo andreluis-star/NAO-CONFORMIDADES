@@ -650,6 +650,7 @@ function initCloud(){
             if(SESSION && !isEditing() && !modalOpen()){ renderAdmin(); renderAll(); }
           }catch(e){}
           finally{ cloudApplying=false; }
+          if(SHEET){ const n=importTreatables(); if(n && SESSION && !isEditing() && !modalOpen()){ renderAdmin(); renderAll(); } }
         }
       } else {
         cloudDoc.set({state:JSON.stringify(STATE), ts:Date.now()}).catch(()=>{});
@@ -687,6 +688,46 @@ function fillMonthFilter(){
   if(keys.includes(MONTHF)) sel.value=MONTHF; else { MONTHF=''; sel.value=''; }
 }
 function setMonth(v){ MONTHF=v; renderAll(); }
+
+/* ---- Casos tratáveis vindos da planilha (ago/26 em diante) ---- */
+const TRATA_CUTOFF='2026-08'; // AAAA-MM: a partir daqui vira caso tratável
+function isTreat(d){ const k=monthKeyOf(d); return !!k && k>=TRATA_CUTOFF; }
+const RESP_MAP={
+  'Operação':'Operação / Log. Externa','Operacao':'Operação / Log. Externa',
+  'Expedição':'Expedição / Log. Interna','Expedicao':'Expedição / Log. Interna',
+  'Sem responsável':'Sem responsável direto','Atendimentox Operação':'Atendimento',
+  'Armazém':'Estoque','Armazem':'Estoque'
+};
+function mapResp(n){ n=(n||'').trim(); return RESP_MAP[n]||n||'Sem responsável direto'; }
+let impSeq=0;
+function importTreatables(){
+  if(!SHEET) return 0;
+  const existing=new Set(STATE.registros.filter(r=>r.srcKey).map(r=>r.srcKey));
+  const seen={}; let added=0;
+  SHEET.records.forEach(rec=>{
+    if(!isTreat(rec.data)) return;
+    const base=[rec.data,rec.placa,rec.resp,rec.tipo,rec.ref].join('|');
+    seen[base]=(seen[base]||0)+1;
+    const key='sheet:'+base+'#'+seen[base];
+    if(existing.has(key)) return;
+    const resp=mapResp(rec.resp);
+    STATE.registros.push({
+      id: Date.now()+(++impSeq), vert:'NC',
+      ocorr:(rec.tipo||'Ocorrência')+(rec.ref?(' — '+rec.ref):''),
+      data:rec.data, dataCad:new Date().toISOString(),
+      placa:rec.placa||'', resp, tipo:rec.tipo||'Não especificado', sub:'',
+      ref:rec.ref||'', obs:'Importado da base (planilha).',
+      custoTipo:'nenhum', custo:'', informar:true,
+      criadoPor:'Direção', status:'pendente_resp', pendCom:resp, plano:'',
+      hist:[{quem:'Direção',acao:'Importado da base para tratamento',obs:'',aceite:'',plano:'',quando:new Date().toISOString()}],
+      origem:'planilha', srcKey:key
+    });
+    added++;
+  });
+  if(added) save();
+  return added;
+}
+function treatCount(){ return SHEET?SHEET.records.filter(r=>isTreat(r.data)).length:0; }
 
 /* ============ LOGIN ============ */
 function doLogin(){
@@ -739,7 +780,8 @@ function setVertente(v){
 }
 function updateBadges(){
   const nc = countVert('NC'), er = countVert('ERRO');
-  document.getElementById('badgeNC').textContent = nc + (SHEET?(' + '+SHEET.total+' base'):'');
+  const baseHist = SHEET?SHEET.records.filter(r=>!isTreat(r.data)).length:0;
+  document.getElementById('badgeNC').textContent = nc + (SHEET?(' + '+baseHist+' base'):'');
   document.getElementById('badgeERRO').textContent = er;
 }
 function countVert(v){ return visibleReg().filter(r=>r.vert===v).length; }
@@ -766,6 +808,7 @@ function canSee(resp){
 // registros visíveis: onde o usuário é criador, responsável, ou tem permissão de ver o responsável
 function visibleReg(){
   return STATE.registros.filter(r=>{
+    if(r.excluido) return false;
     if(SESSION.role==='admin'||SESSION.nivel==='tudo') return true;
     if(r.criadoPor===SESSION.name) return true;
     return canSee(r.resp);
@@ -784,6 +827,7 @@ async function loadSheet(){
     try{ rows = await loadViaFetch(); }
     catch(e){ rows = await loadViaJSONP(); }
     SHEET = buildOcorrencias(rows);
+    importTreatables();
     clearStatus();
   }catch(err){
     SHEET=null;
@@ -870,7 +914,7 @@ function dataForVert(){
     if(mk)byMonth.set(mk,(byMonth.get(mk)||0)+1);
   }
   if(VERT==='NC' && SHEET){
-    SHEET.records.forEach(r=>{ if(!passMonth(r.data))return; add(r.resp,r.tipo,r.y+'-'+String(r.mo).padStart(2,'0')); });
+    SHEET.records.forEach(r=>{ if(!passMonth(r.data)||isTreat(r.data))return; add(mapResp(r.resp),r.tipo,r.y+'-'+String(r.mo).padStart(2,'0')); });
   }
   local.forEach(r=>{
     const d=r.data||r.dataCad; if(!passMonth(d))return;
@@ -931,15 +975,16 @@ function kpi(label,val,foot,cls){ const d=document.createElement('div'); d.class
 function setSemScope(s){ semScope=s; document.querySelectorAll('#semScopeSeg button').forEach(b=>b.classList.toggle('active',b.dataset.s===s)); renderSem(); }
 function allRespNames(){
   const s=new Set(RESPONSAVEIS);
-  STATE.registros.filter(r=>r.vert===VERT).forEach(r=>{ if(r.resp)s.add(r.resp); if(r.criadoPor)s.add(r.criadoPor); });
-  if(VERT==='NC'&&SHEET) SHEET.respEntries.forEach(e=>s.add(e[0]));
+  STATE.registros.filter(r=>r.vert===VERT&&!r.excluido).forEach(r=>{ if(r.resp)s.add(r.resp); if(r.criadoPor)s.add(r.criadoPor); });
+  if(VERT==='NC'&&SHEET) SHEET.respEntries.forEach(e=>s.add(mapResp(e[0])));
+  s.delete('Direção');
   return [...s];
 }
 function semData(){
   const map=new Map();
   function bump(n,k,v){ if(!n)return; if(!map.has(n))map.set(n,{r:0,y:0,g:0,total:0,pend:0,ok:0,custo:0}); map.get(n)[k]+=v; }
-  if(VERT==='NC'&&SHEET){ SHEET.records.forEach(rec=>{ if(passMonth(rec.data)) bump(rec.resp,'total',1); }); }
-  STATE.registros.filter(r=>r.vert===VERT&&passMonth(r.data)).forEach(r=>{
+  if(VERT==='NC'&&SHEET){ SHEET.records.forEach(rec=>{ if(passMonth(rec.data)&&!isTreat(rec.data)) bump(mapResp(rec.resp),'total',1); }); }
+  STATE.registros.filter(r=>r.vert===VERT&&passMonth(r.data)&&!r.excluido).forEach(r=>{
     const involved=[r.criadoPor,r.resp].filter((v,i,a)=>v&&a.indexOf(v)===i);
     involved.forEach(n=>bump(n,'total',1));
     if(r.resp) bump(r.resp,'custo',parseMoney(r.custo));
@@ -981,8 +1026,8 @@ function semCard(name,v,own){
 }
 function geralData(mineOnly){
   let total=0,ok=0,custo=0,dev=0,resp=0,g=0;
-  if(VERT==='NC'&&SHEET){ SHEET.records.forEach(rec=>{ if(!passMonth(rec.data))return; if(mineOnly && rec.resp!==SESSION.name)return; total++; }); }
-  STATE.registros.filter(x=>x.vert===VERT&&passMonth(x.data)).forEach(x=>{
+  if(VERT==='NC'&&SHEET){ SHEET.records.forEach(rec=>{ if(!passMonth(rec.data)||isTreat(rec.data))return; if(mineOnly && rec.resp!==SESSION.name)return; total++; }); }
+  STATE.registros.filter(x=>x.vert===VERT&&passMonth(x.data)&&!x.excluido).forEach(x=>{
     if(mineOnly && x.resp!==SESSION.name && x.criadoPor!==SESSION.name) return;
     total++; custo+=parseMoney(x.custo);
     if(x.status==='ok'){ ok++; g++; }
@@ -1168,9 +1213,10 @@ function crossFor(mode,sel){
   function add(a,b){ map.set(b,(map.get(b)||0)+1); }
   if(VERT==='NC'&&SHEET){
     SHEET.records.forEach(r=>{
-      if(!passMonth(r.data))return;
-      if(mode==='resp'&&r.resp===sel)add(r.resp,r.tipo);
-      if(mode==='tipo'&&r.tipo===sel)add(r.tipo,r.resp);
+      if(!passMonth(r.data)||isTreat(r.data))return;
+      const rr=mapResp(r.resp);
+      if(mode==='resp'&&rr===sel)add(rr,r.tipo);
+      if(mode==='tipo'&&r.tipo===sel)add(r.tipo,rr);
     });
   }
   visibleReg().filter(r=>r.vert===VERT&&passMonth(r.data)).forEach(r=>{
