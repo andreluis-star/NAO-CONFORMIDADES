@@ -153,6 +153,18 @@ main{max-width:1480px;margin:0 auto;padding:22px 26px 70px}
 .sem-foot{display:flex;justify-content:space-between;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--ink-dim)}
 .sem-foot b{color:var(--ink);font-weight:700}
 .sem-card.own{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),var(--shadow)}
+@keyframes pulseCard{0%,100%{box-shadow:var(--shadow)}50%{box-shadow:0 0 0 4px rgba(245,130,31,.28),var(--shadow)}}
+.blink{animation:pulseCard 1.3s ease-in-out infinite}
+.sem-card.blink{border-color:#f3c98f}
+.geral-card{background:linear-gradient(120deg,#ffffff,#f2f7ff);border:1px solid var(--border);border-left:5px solid var(--navy);border-radius:16px;padding:20px 24px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap;margin-bottom:14px}
+.geral-card.blink{border-left-color:var(--orange)}
+.geral-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:7px}
+.geral-total{font-size:42px;font-weight:800;letter-spacing:-.02em;line-height:1;color:var(--navy)}
+.geral-total span{font-size:14px;font-weight:600;color:var(--ink-muted);margin-left:8px}
+.geral-custo{font-size:13px;color:var(--ink-dim);margin-top:9px}
+.geral-lights{display:flex;gap:10px}
+.geral-lights .light{min-width:98px;cursor:default}
+.geral-lights .light:hover{transform:none}
 .legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--ink-dim)}
 .legend-row span{display:flex;align-items:center;gap:6px}
 
@@ -327,7 +339,7 @@ textarea{resize:vertical;min-height:70px}
           <span><span class="dot" style="background:var(--green)"></span> OK</span>
         </div>
       </div>
-      <div class="kpi-grid" id="kpiSem"></div>
+      <div id="geralCard"></div>
       <div class="sem-grid" id="semGrid"></div>
     </section>
 
@@ -919,35 +931,52 @@ function renderSem(){
   const z={r:0,y:0,g:0,total:0,aberto:0,ok:0,custo:0};
   let names = mineOnly ? [SESSION.name] : allRespNames();
   names.sort((a,b)=>((map.get(b)||z).total-(map.get(a)||z).total) || a.localeCompare(b));
-  renderSemKpis(mineOnly);
+  renderGeral(mineOnly);
   el.innerHTML = names.map(n=>semCard(n, map.get(n)||z, n===SESSION.name)).join('');
 }
 function semCard(name,v,own){
   const dot = v.r?'var(--red)':v.y?'var(--yellow)':v.total?'var(--green)':'var(--ink-muted)';
-  return `<div class="sem-card${own?' own':''}">
+  const open = (v.r>0 || v.y>0); // ocorrências em aberto -> piscar
+  const lights=[];
+  if(v.r>0) lights.push(`<div class="light r" onclick="goTram('${enc(name)}','aberto')"><div class="n">${v.r}</div><div class="l">Apontou outro</div></div>`);
+  if(v.y>0) lights.push(`<div class="light y" onclick="goTram('${enc(name)}','')"><div class="n">${v.y}</div><div class="l">Para tratar</div></div>`);
+  if(v.g>0) lights.push(`<div class="light g" onclick="goTram('${enc(name)}','ok')"><div class="n">${v.g}</div><div class="l">OK</div></div>`);
+  const lightsHtml = lights.length ? `<div class="sem-lights">${lights.join('')}</div>` : '';
+  return `<div class="sem-card${own?' own':''}${open?' blink':''}">
     <div class="sem-total">${v.total} caso(s)</div>
     <h4><span class="dot" style="background:${dot}"></span>${esc(name)}${own?' <span style="font-size:10px;color:var(--orange);font-weight:800">• VOCÊ</span>':''}</h4>
-    <div class="resp-sub">Resumo do setor</div>
-    <div class="sem-lights">
-      <div class="light r" onclick="goTram('${enc(name)}','aberto')"><div class="n">${v.r}</div><div class="l">Apontou outro</div></div>
-      <div class="light y" onclick="goTram('${enc(name)}','')"><div class="n">${v.y}</div><div class="l">Para tratar</div></div>
-      <div class="light g" onclick="goTram('${enc(name)}','ok')"><div class="n">${v.g}</div><div class="l">OK</div></div>
-    </div>
+    <div class="resp-sub">${lightsHtml?'Situação':'Resumo'}</div>
+    ${lightsHtml}
     <div class="sem-foot"><span><b>${v.total}</b> ocorr.</span><span><b>${v.aberto}</b> aberto</span><span>${v.custo?('R$ <b>'+fmtMoney(v.custo)+'</b>'):'sem custo'}</span></div>
   </div>`;
 }
-function renderSemKpis(mineOnly){
-  const grid=document.getElementById('kpiSem'); if(!grid)return; grid.innerHTML='';
-  let total=0,ab=0,ok=0,custo=0;
-  if(VERT==='NC'&&SHEET){ SHEET.records.forEach(r=>{ if(!passMonth(r.data))return; if(mineOnly && r.resp!==SESSION.name)return; total++; }); }
-  STATE.registros.filter(r=>r.vert===VERT&&passMonth(r.data)).forEach(r=>{
-    if(mineOnly && r.resp!==SESSION.name && r.criadoPor!==SESSION.name) return;
-    total++; if(r.status==='ok')ok++; else ab++; custo+=parseMoney(r.custo);
+function geralData(mineOnly){
+  let total=0,ok=0,custo=0,r=0,y=0,g=0;
+  if(VERT==='NC'&&SHEET){ SHEET.records.forEach(rec=>{ if(!passMonth(rec.data))return; if(mineOnly && rec.resp!==SESSION.name)return; total++; }); }
+  STATE.registros.filter(x=>x.vert===VERT&&passMonth(x.data)).forEach(x=>{
+    if(mineOnly && x.resp!==SESSION.name && x.criadoPor!==SESSION.name) return;
+    total++; custo+=parseMoney(x.custo);
+    if(x.status==='ok'){ ok++; g++; }
+    else { y++; if(x.criadoPor && x.criadoPor!==x.resp) r++; }
   });
-  grid.appendChild(kpi('Ocorrências no recorte',fmt(total),MONTHF?'no mês selecionado':'total acumulado','navy'));
-  grid.appendChild(kpi('Em aberto / tratamento',fmt(ab),'aguardando','yellow'));
-  grid.appendChild(kpi('Finalizadas (OK)',fmt(ok),'concluídas','green'));
-  grid.appendChild(kpi('Custo nos cadastros','R$ '+fmtMoney(custo),'soma do recorte','orange'));
+  return {total,ok,custo,r,y,g};
+}
+function renderGeral(mineOnly){
+  const el=document.getElementById('geralCard'); if(!el)return;
+  const d=geralData(mineOnly);
+  const open=(d.r+d.y)>0;
+  el.innerHTML=`<div class="geral-card${open?' blink':''}">
+    <div>
+      <div class="geral-eyebrow">${mineOnly?'Meu resumo geral':'Visão geral — todos os responsáveis'}</div>
+      <div class="geral-total">${fmt(d.total)}<span>ocorrências${MONTHF?' no mês selecionado':''}</span></div>
+      <div class="geral-custo">Finalizadas: <b>${fmt(d.ok)}</b> &nbsp;·&nbsp; Custo no recorte: <b>R$ ${fmtMoney(d.custo)}</b></div>
+    </div>
+    <div class="geral-lights">
+      <div class="light r"><div class="n">${d.r}</div><div class="l">Apontou outro</div></div>
+      <div class="light y"><div class="n">${d.y}</div><div class="l">Para tratar</div></div>
+      <div class="light g"><div class="n">${d.g}</div><div class="l">Finalizadas</div></div>
+    </div>
+  </div>`;
 }
 function enc(s){return s.replace(/'/g,"\\'");}
 function goTram(nome,st){ setTab('tram'); document.querySelector('.nav-btn[data-tab="tram"]'); document.getElementById('tramResp').value=nome; setTramFilter(st==='ok'?'ok':st==='aberto'?'aberto':'all'); }
