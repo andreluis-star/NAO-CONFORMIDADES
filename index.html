@@ -451,6 +451,10 @@ textarea{resize:vertical;min-height:70px}
         </div>
         <div class="hint-inline">O WhatsApp pode ser digitado com DDD; se não colocar o 55, ele é adicionado automaticamente. Pode cadastrar mais de uma pessoa por responsável (o e-mail vai para todos; o WhatsApp abre no primeiro).</div>
       </div>
+      <div class="card" style="margin-top:13px">
+        <div class="card-head"><div><h3>Ocorrências excluídas <span style="color:var(--red)">(log)</span></h3><div class="sub">Para excluir: no Trâmite, botão "Excluir" na linha da ocorrência. Aqui fica o registro do que era e o motivo.</div></div></div>
+        <div class="chip-list" id="admExcluidas"></div>
+      </div>
       <div class="adm-grid" style="margin-top:13px">
         <div class="card">
           <div class="card-head"><div><h3>Senha do administrador</h3><div class="sub">Altere a senha mestra</div></div></div>
@@ -520,6 +524,19 @@ textarea{resize:vertical;min-height:70px}
     <div class="modal-head"><h3 id="respTitle">Responder pendência</h3><button class="x" onclick="closeModal('modalResp')">×</button></div>
     <div class="modal-body" id="respBody"></div>
     <div class="modal-foot" id="respFoot"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL EXCLUIR (admin) ===== -->
+<div class="modal-bg" id="modalExcl">
+  <div class="modal" style="max-width:470px">
+    <div class="modal-head"><h3>Excluir ocorrência</h3><button class="x" onclick="closeModal('modalExcl')">×</button></div>
+    <div class="modal-body">
+      <div class="resp-summary" id="exclSummary"></div>
+      <div class="field field-req"><label>Motivo da exclusão</label><textarea id="exclMotivo" placeholder="Explique por que este caso está sendo excluído…"></textarea></div>
+      <div class="hint-inline">O caso sai dos painéis e do trâmite, mas fica guardado no log de excluídas (o que era + motivo + quem excluiu). Dá para restaurar depois.</div>
+    </div>
+    <div class="modal-foot"><button class="btn-ghost" onclick="closeModal('modalExcl')">Cancelar</button><button class="btn-cta" style="background:linear-gradient(135deg,#b93b3f,var(--red))" onclick="doExcluir()">Excluir caso</button></div>
   </div>
 </div>
 
@@ -1098,7 +1115,7 @@ function rowTram(r){
     <td><span class="tag-pill">${esc(r.resp)}</span></td>
     <td>${esc(r.tipo)}${r.sub?`<div class="tag-pill" style="margin-top:3px">${esc(r.sub)}</div>`:''}</td><td>${esc(r.ref)||'—'}</td><td>${custo}</td>
     <td><span class="st-badge ${stClass(r)}">${esc(statusLabel(r))}</span></td>
-    <td><div class="act-row">${acao}${adv}</div></td>
+    <td><div class="act-row">${acao}${adv}${SESSION.role==='admin'?`<button class="tiny-btn" style="color:var(--red);border-color:#f2cfd0" onclick="openExcluir(${r.id})">Excluir</button>`:''}</div></td>
   </tr>`;
 }
 function acionarBtns(r){
@@ -1172,6 +1189,31 @@ function doReenviar(){ const r=cur(); if(!r)return; const obs=document.getElemen
 function doConcluir(){ const r=cur(); if(!r)return; const obs=document.getElementById('respObs').value.trim(); r.status='ok'; r.pendCom=''; pushHist(r,'Concluído (OK)',obs,'',''); toast('Ocorrência finalizada (OK).'); finishResp(); }
 function doReabrir(){ const r=cur(); if(!r)return; r.status='pendente_resp'; r.pendCom=r.resp; pushHist(r,'Reabriu a ocorrência',document.getElementById('respObs').value.trim(),'',''); toast('Reaberta.'); finishResp(); }
 function finishResp(){ save(); closeModal('modalResp'); fillMonthFilter(); renderAll(); }
+/* ===== Exclusão (admin) — com registro do que era e do motivo ===== */
+let EXCL_ID=null;
+function openExcluir(id){
+  if(SESSION.role!=='admin'){ toast('Apenas o admin pode excluir.'); return; }
+  const r=STATE.registros.find(x=>x.id===id); if(!r)return;
+  EXCL_ID=id;
+  document.getElementById('exclSummary').innerHTML=`<div><b>${esc(r.ocorr||'—')}</b></div><div class="meta">${esc(r.tipo)}${r.sub?(' › '+esc(r.sub)):''} · Placa: ${esc(r.placa)||'-'} · ${fmtData(r.data)} · Resp: <b>${esc(r.resp)}</b> · ${esc(statusLabel(r))}</div>`;
+  document.getElementById('exclMotivo').value='';
+  document.getElementById('modalExcl').classList.add('on');
+}
+function doExcluir(){
+  const r=STATE.registros.find(x=>x.id===EXCL_ID); if(!r)return;
+  const motivo=document.getElementById('exclMotivo').value.trim();
+  if(!motivo){ toast('Escreva o motivo da exclusão.'); return; }
+  r.excluido=true; r.exclInfo={por:SESSION.name,quando:new Date().toISOString(),motivo};
+  pushHist(r,'Excluída (admin)',motivo,'','');
+  save(); closeModal('modalExcl'); fillMonthFilter(); renderAdmin(); renderAll(); toast('Ocorrência excluída — fica no log de excluídas.');
+}
+function restaurar(id){ const r=STATE.registros.find(x=>x.id===id); if(!r)return; r.excluido=false; delete r.exclInfo; pushHist(r,'Restaurada (admin)','','',''); save(); renderAdmin(); fillMonthFilter(); renderAll(); toast('Ocorrência restaurada.'); }
+function renderExcluidas(){
+  const el=document.getElementById('admExcluidas'); if(!el)return;
+  const list=STATE.registros.filter(r=>r.excluido).sort((a,b)=>(((b.exclInfo&&b.exclInfo.quando)||'')).localeCompare((a.exclInfo&&a.exclInfo.quando)||''));
+  if(!list.length){ el.innerHTML='<div class="empty" style="padding:14px">Nenhuma ocorrência excluída.</div>'; return; }
+  el.innerHTML=list.map(r=>`<div class="chip-item"><div><div class="name">${esc(r.ocorr||'—')} <span class="tag-pill">${esc(r.resp)}</span> <span class="tag-pill">${r.vert==='ERRO'?'Erro Op.':'NC'}</span></div><div class="meta">${esc(r.tipo)}${r.sub?(' › '+esc(r.sub)):''} · ${fmtData(r.data)} · Excluída por <b>${esc((r.exclInfo&&r.exclInfo.por)||'—')}</b> em ${fmtWhen(r.exclInfo&&r.exclInfo.quando)}<br>Motivo: ${esc((r.exclInfo&&r.exclInfo.motivo)||'—')}</div></div><button class="tiny-btn" onclick="restaurar(${r.id})">Restaurar</button></div>`).join('');
+}
 
 /* ---- ANÁLISE DA BASE ---- */
 function setBaseMode(m){ baseMode=m; document.querySelectorAll('#baseModeSeg button').forEach(b=>b.classList.toggle('active',b.dataset.m===m)); fillBaseFilter(); renderBase(); }
@@ -1351,6 +1393,7 @@ function renderAdmin(){
   tg.innerHTML=RESPONSAVEIS.map(r=>`<span class="ptag" data-r="${esc(r)}" onclick="this.classList.toggle('on')">${esc(r)}</span>`).join('');
   renderTipos();
   renderContatos();
+  renderExcluidas();
   // grupos disponíveis no add setor (via prompt simplificado abaixo)
 }
 function nivelLabel(n){ return n==='tudo'?'tudo':n==='grupo'?'grupo de trabalho':'só o próprio setor'; }
