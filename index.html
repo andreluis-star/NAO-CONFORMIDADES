@@ -16,6 +16,7 @@
 :root{
   --navy:#1A3A6E; --navy-2:#12294f; --navy-deep:#0d1f3d;
   --blue:#2E6BC6; --blue-soft:#4d9fff; --blue-100:#e8f0fb;
+  --orange:#F5821F; --orange-2:#FFA24A; --orange-soft:#fff1e2;
   --ink:#12233d; --ink-dim:#5a6b85; --ink-muted:#8b98ad;
   --bg:#eef2f8; --surface:#ffffff; --surface-2:#f6f8fc; --border:#dde4ee; --border-strong:#c7d2e2;
   --red:#e5484d; --red-soft:#fdecec; --yellow:#e8a800; --yellow-soft:#fdf6e3; --green:#1f9d57; --green-soft:#e7f6ee;
@@ -33,17 +34,18 @@ button{font-family:inherit}
              linear-gradient(160deg,var(--navy),var(--navy-deep));padding:24px}
 .login-card{width:100%;max-width:400px;background:var(--surface);border-radius:20px;padding:38px 34px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5);text-align:center}
 .logo-lockup{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:6px}
-.logo-mark{width:66px;height:66px;border-radius:18px;background:linear-gradient(135deg,var(--navy),var(--blue));display:grid;place-items:center;box-shadow:0 10px 26px -8px rgba(26,58,110,.6)}
+.logo-mark{width:66px;height:66px;border-radius:18px;background:linear-gradient(135deg,var(--navy),var(--orange));display:grid;place-items:center;box-shadow:0 10px 26px -8px rgba(26,58,110,.6)}
 .logo-mark svg{width:38px;height:38px}
+.logo-img{max-width:220px;max-height:88px;object-fit:contain}
 .logo-name{font-weight:800;font-size:23px;letter-spacing:.14em;color:var(--navy)}
-.logo-tag{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-top:-6px}
+.logo-tag{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--orange);font-weight:700;margin-top:-6px}
 .login-card h1{font-size:19px;font-weight:700;margin:20px 0 4px;color:var(--ink)}
 .login-card .sub{font-size:13px;color:var(--ink-dim);margin-bottom:22px;line-height:1.5}
 .field{text-align:left;margin-bottom:14px}
 .field label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 input,select,textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--surface);transition:border-color .15s}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
-.btn-primary{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 8px 20px -8px rgba(26,58,110,.6)}
+.btn-primary{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--orange));color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 8px 20px -8px rgba(245,130,31,.5)}
 .btn-primary:hover{filter:brightness(1.07)}
 .login-hint{font-size:11.5px;color:var(--ink-muted);margin-top:16px;line-height:1.6}
 .login-err{color:var(--red);font-size:12.5px;margin-top:10px;min-height:16px;font-weight:600}
@@ -71,8 +73,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 
 .subbar{max-width:1480px;margin:0 auto;padding:11px 26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .brand-mini{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:.12em;color:var(--navy);font-size:15px}
-.brand-mini .m{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--navy),var(--blue));display:grid;place-items:center}
+.brand-mini .m{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--navy),var(--orange));display:grid;place-items:center}
 .brand-mini .m svg{width:15px;height:15px}
+.brand-logo-img{height:30px;width:auto;object-fit:contain}
 .nav{display:flex;gap:6px;flex-wrap:wrap}
 .nav-btn{border:1px solid var(--border);background:#fff;color:var(--ink-dim);font-size:13px;font-weight:600;padding:8px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s}
 .nav-btn:hover{border-color:var(--border-strong);color:var(--ink)}
@@ -84,7 +87,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 .user-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700}
 .btn-ghost{border:1px solid var(--border);background:#fff;color:var(--ink-dim);font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer}
 .btn-ghost:hover{color:var(--red);border-color:var(--red)}
-.btn-cta{border:none;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:13px;font-weight:700;padding:9px 15px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 6px 16px -8px rgba(26,58,110,.6)}
+.btn-cta{border:none;background:linear-gradient(135deg,var(--blue),var(--orange));color:#fff;font-size:13px;font-weight:700;padding:9px 15px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 6px 16px -8px rgba(245,130,31,.5)}
 .btn-cta.erro{background:linear-gradient(135deg,#b93b3f,var(--red))}
 .btn-cta:hover{filter:brightness(1.06)}
 
@@ -114,7 +117,7 @@ main{max-width:1480px;margin:0 auto;padding:22px 26px 70px}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 17px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue)}
-.kpi.red::before{background:var(--red)} .kpi.green::before{background:var(--green)} .kpi.yellow::before{background:var(--yellow)} .kpi.navy::before{background:var(--navy)}
+.kpi.red::before{background:var(--red)} .kpi.green::before{background:var(--green)} .kpi.yellow::before{background:var(--yellow)} .kpi.navy::before{background:var(--navy)} .kpi.orange::before{background:var(--orange)}
 .kpi-label{font-size:11px;color:var(--ink-muted);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
 .kpi-value{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:7px 0 3px;line-height:1}
 .kpi-value small{font-size:13px;color:var(--ink-muted);font-weight:600}
@@ -147,6 +150,9 @@ main{max-width:1480px;margin:0 auto;padding:22px 26px 70px}
 .light.g{background:var(--green-soft);color:#157a41;border-color:#bfe6cf}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .sem-total{position:absolute;top:16px;right:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted)}
+.sem-foot{display:flex;justify-content:space-between;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--ink-dim)}
+.sem-foot b{color:var(--ink);font-weight:700}
+.sem-card.own{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),var(--shadow)}
 .legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--ink-dim)}
 .legend-row span{display:flex;align-items:center;gap:6px}
 
@@ -185,6 +191,16 @@ textarea{resize:vertical;min-height:70px}
 .radio-row{display:flex;gap:10px}
 .radio-chip{flex:1;border:1.5px solid var(--border-strong);border-radius:10px;padding:10px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-dim)}
 .radio-chip.on{border-color:var(--blue);background:var(--blue-100);color:var(--navy)}
+.send-row{display:none;gap:8px;margin-top:10px}
+.send-row.on{display:flex}
+.send-btn{flex:1;border:1.5px solid var(--border-strong);border-radius:10px;padding:9px;font-size:12.5px;font-weight:700;cursor:pointer;background:#fff;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.send-btn.wa{color:#128C4B;border-color:#bfe6cf}
+.send-btn.wa:hover{background:#e7f6ee}
+.send-btn.mail{color:var(--blue);border-color:#c5dbf5}
+.send-btn.mail:hover{background:var(--blue-100)}
+.tipos-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chip-item.sel{border-color:var(--orange);background:var(--orange-soft)}
+@media(max-width:820px){.tipos-wrap{grid-template-columns:1fr}}
 .modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
 .hint-inline{font-size:11.5px;color:var(--ink-muted);margin-top:5px}
 .full{grid-column:1/-1}
@@ -222,12 +238,12 @@ textarea{resize:vertical;min-height:70px}
 <div id="login">
   <div class="login-card">
     <div class="logo-lockup">
-      <div class="logo-mark">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v8H3z" stroke="#fff" stroke-width="1.7"/><path d="M14 10h4l3 3v2h-7z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7" cy="17" r="2" fill="#fff"/><circle cx="17" cy="17" r="2" fill="#fff"/></svg>
-      </div>
-      <div>
-        <div class="logo-name">PORTOEX</div>
-        <div class="logo-tag">Transportando Soluções</div>
+      <img class="logo-img" src="https://andreluis-star.github.io/CENTRAL-DE-ACESSOS-PORTOEX/logo-portoex.png" alt="Portoex" onerror="this.style.display='none';document.getElementById('logoFb').style.display='flex'">
+      <div id="logoFb" style="display:none;flex-direction:column;align-items:center;gap:10px">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v8H3z" stroke="#fff" stroke-width="1.7"/><path d="M14 10h4l3 3v2h-7z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7" cy="17" r="2" fill="#fff"/><circle cx="17" cy="17" r="2" fill="#fff"/></svg>
+        </div>
+        <div><div class="logo-name">PORTOEX</div><div class="logo-tag">Transportando Soluções</div></div>
       </div>
     </div>
     <h1>Controle de Não Conformidades</h1>
@@ -260,14 +276,15 @@ textarea{resize:vertical;min-height:70px}
       </button>
     </div>
     <div class="subbar">
-      <div class="brand-mini"><span class="m"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v8H3z" stroke="#fff" stroke-width="1.7"/><path d="M14 10h4l3 3v2h-7z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg></span>PORTOEX</div>
+      <div class="brand-mini"><img class="brand-logo-img" src="https://andreluis-star.github.io/CENTRAL-DE-ACESSOS-PORTOEX/logo-portoex.png" alt="Portoex" onerror="this.style.display='none';document.getElementById('brandFb').style.display='inline-flex'"><span id="brandFb" style="display:none;align-items:center;gap:9px"><span class="m"><svg viewBox='0 0 24 24' fill='none'><path d='M3 7h11v8H3z' stroke='#fff' stroke-width='1.7'/><path d='M14 10h4l3 3v2h-7z' stroke='#fff' stroke-width='1.7' stroke-linejoin='round'/></svg></span>PORTOEX</span></div>
       <div class="nav" id="nav">
-        <button class="nav-btn active" data-tab="dash" onclick="setTab('dash')">Painel</button>
-        <button class="nav-btn" data-tab="sem" onclick="setTab('sem')">Semáforo</button>
+        <button class="nav-btn active" data-tab="sem" onclick="setTab('sem')">Painel</button>
+        <button class="nav-btn" data-tab="dash" onclick="setTab('dash')">Indicadores</button>
         <button class="nav-btn" data-tab="tram" onclick="setTab('tram')">Trâmite</button>
         <button class="nav-btn" data-tab="base" onclick="setTab('base')">Análise da base</button>
         <button class="nav-btn hidden" id="navAdmin" data-tab="admin" onclick="setTab('admin')">Administração</button>
       </div>
+      <select class="mini-select" id="monthFilter" onchange="setMonth(this.value)" title="Filtrar por mês" style="max-width:150px"><option value="">Todos os meses</option></select>
       <div class="spacer"></div>
       <button class="btn-cta" id="btnNew" onclick="openCadastro()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Nova ocorrência</button>
       <div class="user-chip" id="cloudChip" title="Estado da nuvem"><span class="cdot local"></span> Local</div>
@@ -279,8 +296,8 @@ textarea{resize:vertical;min-height:70px}
   <main>
     <div id="status"></div>
 
-    <!-- PAINEL -->
-    <section class="page active" data-page="dash">
+    <!-- INDICADORES (gráficos) -->
+    <section class="page" data-page="dash">
       <div class="page-head">
         <div><div class="eyebrow" id="dashEye">Não Conformidades</div><h2 id="dashTitle">Painel de acompanhamento</h2><p id="dashDesc">Visão consolidada das ocorrências, responsáveis mais acionados e situação do tratamento.</p></div>
         <span class="vertente-tag nc" id="dashVtag">NÃO CONFORMIDADES</span>
@@ -293,17 +310,24 @@ textarea{resize:vertical;min-height:70px}
       <div class="card"><div class="card-head"><div><h3>Evolução mensal</h3><div class="sub">Volume de ocorrências ao longo do tempo</div></div><span class="card-tag">MÊS</span></div><div class="chart-wrap"><canvas id="chDashMes"></canvas></div></div>
     </section>
 
-    <!-- SEMÁFORO -->
-    <section class="page" data-page="sem">
+    <!-- PAINEL (semáforo — tela inicial) -->
+    <section class="page active" data-page="sem">
       <div class="page-head">
-        <div><div class="eyebrow">Modelo semáforo</div><h2>Situação por responsável</h2><p>Cada setor tem seus números em resumo. <b style="color:var(--red)">Vermelho</b>: casos em que ele apontou outro setor como responsável. <b style="color:#9a7400">Amarelo</b>: casos que enviaram para ele tratar. <b style="color:var(--green)">Verde</b>: casos com OK de tratamento.</p></div>
+        <div><div class="eyebrow">Painel de acompanhamento</div><h2>Situação por responsável</h2><p>Resumo de cada responsável em modelo semáforo. <b style="color:var(--red)">Vermelho</b>: apontou outro setor. <b style="color:#9a7400">Amarelo</b>: recebeu para tratar. <b style="color:var(--green)">Verde</b>: tratamento com OK.</p></div>
         <span class="vertente-tag nc" id="semVtag">NÃO CONFORMIDADES</span>
       </div>
-      <div class="legend-row">
-        <span><span class="dot" style="background:var(--red)"></span> Apontou outro setor (aguardando)</span>
-        <span><span class="dot" style="background:var(--yellow)"></span> Recebeu para tratar</span>
-        <span><span class="dot" style="background:var(--green)"></span> Tratamento OK / finalizado</span>
+      <div class="toolbar">
+        <div class="seg" id="semScopeSeg">
+          <button class="active" data-s="meu" onclick="setSemScope('meu')">Meu setor</button>
+          <button data-s="todos" onclick="setSemScope('todos')">Todos os setores</button>
+        </div>
+        <div class="legend-row" style="margin:0 0 0 6px">
+          <span><span class="dot" style="background:var(--red)"></span> Apontou outro</span>
+          <span><span class="dot" style="background:var(--yellow)"></span> Para tratar</span>
+          <span><span class="dot" style="background:var(--green)"></span> OK</span>
+        </div>
       </div>
+      <div class="kpi-grid" id="kpiSem"></div>
       <div class="sem-grid" id="semGrid"></div>
     </section>
 
@@ -378,6 +402,35 @@ textarea{resize:vertical;min-height:70px}
           <div class="add-inline"><button class="btn-cta" onclick="addGrupo()">Criar grupo</button></div>
         </div>
       </div>
+      <div class="card" style="margin-top:13px">
+        <div class="card-head"><div><h3>Tipos de ocorrência &amp; sub-grupos</h3><div class="sub">Somente o admin cadastra. Clique num tipo para gerenciar os sub-grupos dele.</div></div></div>
+        <div class="tipos-wrap">
+          <div>
+            <div class="hint-inline" style="font-weight:700;margin-bottom:6px">Tipos de ocorrência</div>
+            <div class="chip-list" id="admTipos" style="max-height:300px;overflow:auto"></div>
+            <div class="add-inline"><input id="admNewTipo" placeholder="Novo tipo de ocorrência"><button class="btn-cta" onclick="addTipo()">Adicionar</button></div>
+          </div>
+          <div>
+            <div class="hint-inline" style="font-weight:700;margin-bottom:6px">Sub-grupos de: <b id="subOfLabel" style="color:var(--orange)">— selecione um tipo —</b></div>
+            <div class="chip-list" id="admSubs" style="max-height:300px;overflow:auto"></div>
+            <div class="add-inline"><input id="admNewSub" placeholder="Novo sub-grupo"><button class="btn-cta" onclick="addSub()">Adicionar</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:13px">
+        <div class="card-head"><div><h3>Contatos por responsável <span style="color:var(--orange)">(envio automático)</span></h3><div class="sub">Vincule pessoa, WhatsApp e e-mail a cada responsável. Ao cadastrar a ocorrência, o envio já vai para o contato certo.</div></div></div>
+        <div class="chip-list" id="admContatos"></div>
+        <div class="add-inline">
+          <select id="ctResp"></select>
+          <input id="ctNome" placeholder="Nome da pessoa">
+        </div>
+        <div class="add-inline">
+          <input id="ctTel" placeholder="WhatsApp (ex.: 11 99999-9999)">
+          <input id="ctEmail" placeholder="E-mail" type="email">
+          <button class="btn-cta" onclick="addContato()">Adicionar contato</button>
+        </div>
+        <div class="hint-inline">O WhatsApp pode ser digitado com DDD; se não colocar o 55, ele é adicionado automaticamente. Pode cadastrar mais de uma pessoa por responsável (o e-mail vai para todos; o WhatsApp abre no primeiro).</div>
+      </div>
       <div class="adm-grid" style="margin-top:13px">
         <div class="card">
           <div class="card-head"><div><h3>Senha do administrador</h3><div class="sub">Altere a senha mestra</div></div></div>
@@ -408,17 +461,29 @@ textarea{resize:vertical;min-height:70px}
         <div class="field field-req full"><label>Ocorrência (descrição dos fatos)</label><textarea id="fOcorr" placeholder="Descreva o que aconteceu…"></textarea></div>
         <div class="field"><label>Data da ocorrência</label><input id="fData" type="date"><div class="hint-inline">Data do cadastro é registrada automaticamente.</div></div>
         <div class="field"><label>Placa</label><input id="fPlaca" placeholder="ABC1D23"></div>
-        <div class="field field-req"><label>Setor responsável</label><select id="fResp"></select></div>
-        <div class="field field-req"><label>Tipo de ocorrência</label><select id="fTipo"></select></div>
-        <div class="field"><label>Referência</label><input id="fRef" placeholder="NF / Minuta / Manifesto / D.I."></div>
-        <div class="field"><label>Gerou custo? (R$)</label><input id="fCusto" placeholder="0,00" inputmode="decimal"></div>
+        <div class="field field-req"><label>Setor responsável</label><select id="fResp" onchange="updateSendHint()"></select></div>
+        <div class="field field-req"><label>Tipo de ocorrência</label><select id="fTipo" onchange="fillSub()"></select></div>
+        <div class="field"><label>Sub-grupo</label><select id="fSub"><option value="">—</option></select><div class="hint-inline" id="subHint"></div></div>
+        <div class="field full"><label>Referência</label><input id="fRef" placeholder="NF / Minuta / Manifesto / D.I."></div>
+        <div class="field full"><label>Gerou custo?</label>
+          <div class="radio-row" id="custoChips">
+            <div class="radio-chip" data-c="direto" onclick="setCusto('direto')">Gerou Custo Direto</div>
+            <div class="radio-chip on" data-c="nenhum" onclick="setCusto('nenhum')">Não Gerou Custo</div>
+            <div class="radio-chip" data-c="indireto" onclick="setCusto('indireto')">Gerou Custo Indireto</div>
+          </div>
+          <input id="fCusto" placeholder="Valor R$ (ex.: 350,00)" inputmode="decimal" style="margin-top:10px;display:none">
+        </div>
         <div class="field full"><label>Observações</label><textarea id="fObs" placeholder="Informações complementares…"></textarea></div>
         <div class="field full"><label>Informar ao setor?</label>
           <div class="radio-row">
             <div class="radio-chip on" id="infS" onclick="setInformar(true)">Sim — acionar responsável</div>
             <div class="radio-chip" id="infN" onclick="setInformar(false)">Não</div>
           </div>
-          <div class="hint-inline">Se "Sim", aparecerão os ícones de e-mail e WhatsApp no trâmite para acionar o setor.</div>
+          <div class="send-row on" id="sendRow">
+            <button type="button" class="send-btn wa" onclick="sendFromForm('wa')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 20l1.4-4A8 8 0 1112 20a8 8 0 01-4.6-1.4L4 20z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Enviar por WhatsApp</button>
+            <button type="button" class="send-btn mail" onclick="sendFromForm('mail')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 6h18v12H3z" stroke="currentColor" stroke-width="1.7"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="1.7"/></svg> Enviar por e-mail</button>
+          </div>
+          <div class="hint-inline" id="sendHint"></div>
         </div>
       </div>
     </div>
@@ -489,11 +554,23 @@ function defaultState(){
     adminPass:'portoex',
     setores:[],            // {resp, pass, nivel, grupo}
     grupos:[],             // {nome, setores:[]}
-    registros:[]           // {id,vert,ocorr,data,dataCad,placa,resp,tipo,ref,obs,custo,informar,criadoPor,status}
+    tipos: TIPOS.map(t=>({nome:t, subs:[]})),  // {nome, subs:[]}
+    contatos:[],           // {resp, nome, tel, email}
+    registros:[]           // {id,vert,ocorr,data,dataCad,placa,resp,tipo,sub,ref,obs,custoTipo,custo,informar,criadoPor,status}
   };
 }
+function normalizeState(){
+  if(!STATE || typeof STATE!=='object') STATE=defaultState();
+  if(!Array.isArray(STATE.setores)) STATE.setores=[];
+  if(!Array.isArray(STATE.grupos)) STATE.grupos=[];
+  if(!Array.isArray(STATE.registros)) STATE.registros=[];
+  if(!Array.isArray(STATE.tipos)||!STATE.tipos.length) STATE.tipos=TIPOS.map(t=>({nome:t,subs:[]}));
+  if(!Array.isArray(STATE.contatos)) STATE.contatos=[];
+  if(!STATE.adminPass) STATE.adminPass='portoex';
+}
 let STATE = load();
-function load(){ try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)); return s&&s.registros?s:defaultState(); }catch(e){ return defaultState(); } }
+normalizeState();
+function load(){ try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)); return (s&&s.registros)?s:defaultState(); }catch(e){ return defaultState(); } }
 function save(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); }catch(e){ try{toast('Atenção: o navegador bloqueou o salvamento local.');}catch(_){} }
   if(cloudOn && cloudDoc && !cloudApplying){ cloudDoc.set({state:JSON.stringify(STATE), ts:Date.now()}).catch(()=>{}); }
@@ -531,7 +608,7 @@ function initCloud(){
         if(d && d.state){
           try{
             cloudApplying=true;
-            STATE=Object.assign(defaultState(), JSON.parse(d.state));
+            STATE=Object.assign(defaultState(), JSON.parse(d.state)); normalizeState();
             if(SESSION && !isEditing() && !modalOpen()){ renderAdmin(); renderAll(); }
           }catch(e){}
           finally{ cloudApplying=false; }
@@ -546,9 +623,32 @@ function initCloud(){
 /* ============ SESSÃO ============ */
 let SESSION = null; // {role:'admin'|'setor', name, nivel, grupo}
 let VERT = 'NC';
-let TAB = 'dash';
+let TAB = 'sem';
 let SHEET = null;   // dados da planilha (buildOcorrencias)
 let tramFilter='all', baseMode='resp', informarFlag=true;
+let MONTHF='';      // filtro de mês global ('' = todos, ou 'YYYY-MM')
+let semScope='meu'; // escopo do semáforo: 'meu' | 'todos'
+
+/* ---- Mês ---- */
+function monthKeyOf(d){
+  if(!d) return null; d=String(d).trim();
+  let m=d.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2];
+  m=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if(m){ let y=+m[3]; if(m[3].length===2)y+=2000; return y+'-'+String(+m[2]).padStart(2,'0'); }
+  return null;
+}
+function passMonth(d){ return !MONTHF || monthKeyOf(d)===MONTHF; }
+function parseMoney(v){ v=String(v==null?'':v).trim(); if(!v)return 0; const n=parseFloat(v.replace(/\./g,'').replace(',','.')); return isNaN(n)?0:n; }
+function fmtMoney(n){ return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fillMonthFilter(){
+  const sel=document.getElementById('monthFilter'); if(!sel)return;
+  const set=new Set();
+  if(VERT==='NC'&&SHEET) SHEET.records.forEach(r=>{const k=monthKeyOf(r.data); if(k)set.add(k);});
+  STATE.registros.filter(r=>r.vert===VERT).forEach(r=>{const k=monthKeyOf(r.data); if(k)set.add(k);});
+  const keys=[...set].sort();
+  sel.innerHTML='<option value="">Todos os meses</option>'+keys.map(k=>{const[y,m]=k.split('-');return `<option value="${k}">${MES_ABBR[+m-1]}/${y.slice(2)}</option>`;}).join('');
+  if(keys.includes(MONTHF)) sel.value=MONTHF; else { MONTHF=''; sel.value=''; }
+}
+function setMonth(v){ MONTHF=v; renderAll(); }
 
 /* ============ LOGIN ============ */
 function doLogin(){
@@ -570,9 +670,11 @@ function enterApp(){
   document.getElementById('uav').textContent = SESSION.name[0].toUpperCase();
   document.getElementById('navAdmin').classList.toggle('hidden', SESSION.role!=='admin');
   document.getElementById('loginErr').textContent='';
+  semScope = SESSION.role==='admin' ? 'todos' : 'meu';
   fillSelectsOnce();
   loadSheet();
   setVertente('NC');
+  setTab('sem');
   renderAdmin();
 }
 
@@ -590,6 +692,7 @@ function setVertente(v){
   document.getElementById('baseDesc').textContent = isErro
     ? 'Base construída do zero. Analise os erros operacionais por responsável ou por tipo.'
     : 'Estrutura de acesso igual ao projeto original: analise por responsável ou por tipo de ocorrência.';
+  fillMonthFilter();
   updateBadges();
   renderAll();
 }
@@ -645,7 +748,7 @@ async function loadSheet(){
     SHEET=null;
     setStatus('Não consegui carregar a planilha viva ('+err.message+'). O restante do sistema funciona normalmente; a base de NC aparece assim que a planilha estiver acessível.',true);
   }
-  updateBadges(); renderAll();
+  fillMonthFilter(); updateBadges(); renderAll();
 }
 async function loadViaFetch(){
   const res = await fetch(csvUrl(SHEET_NAME_OCORRENCIAS),{cache:'no-store'});
@@ -726,10 +829,11 @@ function dataForVert(){
     if(mk)byMonth.set(mk,(byMonth.get(mk)||0)+1);
   }
   if(VERT==='NC' && SHEET){
-    SHEET.records.forEach(r=>add(r.resp,r.tipo,r.y+'-'+String(r.mo).padStart(2,'0')));
+    SHEET.records.forEach(r=>{ if(!passMonth(r.data))return; add(r.resp,r.tipo,r.y+'-'+String(r.mo).padStart(2,'0')); });
   }
   local.forEach(r=>{
-    const d=r.data||r.dataCad; const m=(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const d=r.data||r.dataCad; if(!passMonth(d))return;
+    const m=(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
     const mk = m?(m[1]+'-'+m[2]):null;
     add(r.resp,r.tipo,mk);
   });
@@ -782,43 +886,68 @@ function hbar(id,entries){
 function baseOpts(legend){ return {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:legend}},scales:{x:{grid:{display:false}},y:{grid:{color:gridColor},ticks:{precision:0}}}}; }
 function kpi(label,val,foot,cls){ const d=document.createElement('div'); d.className='kpi '+(cls||''); d.innerHTML=`<div class="kpi-label">${label}</div><div class="kpi-value">${val}</div><div class="kpi-foot">${foot}</div>`; return d; }
 
-/* ---- SEMÁFORO ---- */
+/* ---- SEMÁFORO (tela inicial) ---- */
+function setSemScope(s){ semScope=s; document.querySelectorAll('#semScopeSeg button').forEach(b=>b.classList.toggle('active',b.dataset.s===s)); renderSem(); }
+function allRespNames(){
+  const s=new Set(RESPONSAVEIS);
+  STATE.registros.filter(r=>r.vert===VERT).forEach(r=>{ if(r.resp)s.add(r.resp); if(r.criadoPor)s.add(r.criadoPor); });
+  if(VERT==='NC'&&SHEET) SHEET.respEntries.forEach(e=>s.add(e[0]));
+  return [...s];
+}
 function semData(){
-  // Considera apenas registros locais (têm criadoPor/status). Base viva não tem trâmite.
-  const regs = visibleReg().filter(r=>r.vert===VERT);
   const map=new Map();
-  function ensure(n){ if(!map.has(n))map.set(n,{r:0,y:0,g:0,total:0}); return map.get(n); }
-  regs.forEach(r=>{
-    if(r.status==='ok'){
-      // verde para quem criou e para o responsável
-      ensure(r.resp).g++; ensure(r.resp).total++;
-      if(r.criadoPor && r.criadoPor!==r.resp){ ensure(r.criadoPor).g++; ensure(r.criadoPor).total++; }
-    } else {
-      // amarelo: responsável recebeu para tratar
-      ensure(r.resp).y++; ensure(r.resp).total++;
-      // vermelho: quem criou apontou outro setor
-      if(r.criadoPor && r.criadoPor!==r.resp){ ensure(r.criadoPor).r++; ensure(r.criadoPor).total++; }
+  function bump(n,k,v){ if(!n)return; if(!map.has(n))map.set(n,{r:0,y:0,g:0,total:0,aberto:0,ok:0,custo:0}); map.get(n)[k]+=v; }
+  if(VERT==='NC'&&SHEET){ SHEET.records.forEach(rec=>{ if(passMonth(rec.data)) bump(rec.resp,'total',1); }); }
+  STATE.registros.filter(r=>r.vert===VERT&&passMonth(r.data)).forEach(r=>{
+    bump(r.resp,'total',1);
+    if(r.status==='ok'){ bump(r.resp,'g',1); bump(r.resp,'ok',1); }
+    else { bump(r.resp,'y',1); bump(r.resp,'aberto',1); }
+    bump(r.resp,'custo',parseMoney(r.custo));
+    if(r.criadoPor && r.criadoPor!==r.resp){
+      bump(r.criadoPor,'total',1);
+      if(r.status==='ok') bump(r.criadoPor,'g',1); else bump(r.criadoPor,'r',1);
     }
   });
-  return [...map.entries()].filter(([n])=>canSee(n)).sort((a,b)=>b[1].total-a[1].total);
+  return map;
 }
 function renderSem(){
   const el=document.getElementById('semGrid');
-  const data=semData();
-  if(!data.length){ el.innerHTML=emptyBox('Nenhuma ocorrência com trâmite ainda. Cadastre uma ocorrência e aponte o setor responsável para o semáforo ganhar vida.'); return; }
-  el.innerHTML='';
-  data.forEach(([nome,v])=>{
-    const c=document.createElement('div'); c.className='sem-card';
-    c.innerHTML=`<div class="sem-total">${v.total} caso(s)</div>
-      <h4><span class="dot" style="background:${v.r?'var(--red)':v.y?'var(--yellow)':'var(--green)'}"></span>${nome}</h4>
-      <div class="resp-sub">Resumo do setor</div>
-      <div class="sem-lights">
-        <div class="light r" onclick="goTram('${enc(nome)}','aberto')"><div class="n">${v.r}</div><div class="l">Apontou outro</div></div>
-        <div class="light y" onclick="goTram('${enc(nome)}','')"><div class="n">${v.y}</div><div class="l">Para tratar</div></div>
-        <div class="light g" onclick="goTram('${enc(nome)}','ok')"><div class="n">${v.g}</div><div class="l">OK</div></div>
-      </div>`;
-    el.appendChild(c);
+  const map=semData();
+  const isAdmin=SESSION.role==='admin';
+  document.getElementById('semScopeSeg').style.display = isAdmin?'none':'inline-flex';
+  const mineOnly = !isAdmin && semScope==='meu';
+  const z={r:0,y:0,g:0,total:0,aberto:0,ok:0,custo:0};
+  let names = mineOnly ? [SESSION.name] : allRespNames();
+  names.sort((a,b)=>((map.get(b)||z).total-(map.get(a)||z).total) || a.localeCompare(b));
+  renderSemKpis(mineOnly);
+  el.innerHTML = names.map(n=>semCard(n, map.get(n)||z, n===SESSION.name)).join('');
+}
+function semCard(name,v,own){
+  const dot = v.r?'var(--red)':v.y?'var(--yellow)':v.total?'var(--green)':'var(--ink-muted)';
+  return `<div class="sem-card${own?' own':''}">
+    <div class="sem-total">${v.total} caso(s)</div>
+    <h4><span class="dot" style="background:${dot}"></span>${esc(name)}${own?' <span style="font-size:10px;color:var(--orange);font-weight:800">• VOCÊ</span>':''}</h4>
+    <div class="resp-sub">Resumo do setor</div>
+    <div class="sem-lights">
+      <div class="light r" onclick="goTram('${enc(name)}','aberto')"><div class="n">${v.r}</div><div class="l">Apontou outro</div></div>
+      <div class="light y" onclick="goTram('${enc(name)}','')"><div class="n">${v.y}</div><div class="l">Para tratar</div></div>
+      <div class="light g" onclick="goTram('${enc(name)}','ok')"><div class="n">${v.g}</div><div class="l">OK</div></div>
+    </div>
+    <div class="sem-foot"><span><b>${v.total}</b> ocorr.</span><span><b>${v.aberto}</b> aberto</span><span>${v.custo?('R$ <b>'+fmtMoney(v.custo)+'</b>'):'sem custo'}</span></div>
+  </div>`;
+}
+function renderSemKpis(mineOnly){
+  const grid=document.getElementById('kpiSem'); if(!grid)return; grid.innerHTML='';
+  let total=0,ab=0,ok=0,custo=0;
+  if(VERT==='NC'&&SHEET){ SHEET.records.forEach(r=>{ if(!passMonth(r.data))return; if(mineOnly && r.resp!==SESSION.name)return; total++; }); }
+  STATE.registros.filter(r=>r.vert===VERT&&passMonth(r.data)).forEach(r=>{
+    if(mineOnly && r.resp!==SESSION.name && r.criadoPor!==SESSION.name) return;
+    total++; if(r.status==='ok')ok++; else ab++; custo+=parseMoney(r.custo);
   });
+  grid.appendChild(kpi('Ocorrências no recorte',fmt(total),MONTHF?'no mês selecionado':'total acumulado','navy'));
+  grid.appendChild(kpi('Em aberto / tratamento',fmt(ab),'aguardando','yellow'));
+  grid.appendChild(kpi('Finalizadas (OK)',fmt(ok),'concluídas','green'));
+  grid.appendChild(kpi('Custo nos cadastros','R$ '+fmtMoney(custo),'soma do recorte','orange'));
 }
 function enc(s){return s.replace(/'/g,"\\'");}
 function goTram(nome,st){ setTab('tram'); document.querySelector('.nav-btn[data-tab="tram"]'); document.getElementById('tramResp').value=nome; setTramFilter(st==='ok'?'ok':st==='aberto'?'aberto':'all'); }
@@ -829,7 +958,7 @@ function renderTram(){
   const tb=document.getElementById('tramTable'), emp=document.getElementById('tramEmpty');
   const respF=document.getElementById('tramResp').value;
   const q=(document.getElementById('tramSearch').value||'').toLowerCase();
-  let regs=visibleReg().filter(r=>r.vert===VERT);
+  let regs=visibleReg().filter(r=>r.vert===VERT&&passMonth(r.data));
   if(tramFilter!=='all')regs=regs.filter(r=>r.status===tramFilter);
   if(respF)regs=regs.filter(r=>r.resp===respF||r.criadoPor===respF);
   if(q)regs=regs.filter(r=>(r.ocorr+' '+r.placa+' '+r.ref+' '+r.tipo).toLowerCase().includes(q));
@@ -841,10 +970,16 @@ function renderTram(){
 function rowTram(r){
   const stCls = r.status==='ok'?'st-ok':r.status==='tratamento'?'st-tratamento':'st-aberto';
   const stTxt = r.status==='ok'?'Finalizada':r.status==='tratamento'?'Em tratamento':'Aberta';
-  const custo = r.custo? 'R$ '+r.custo : '—';
+  let custo;
+  if(r.custoTipo==='direto') custo='<b style="color:var(--red)">Direto</b>'+(r.custo?('<br>R$ '+r.custo):'');
+  else if(r.custoTipo==='indireto') custo='<b style="color:var(--orange)">Indireto</b>'+(r.custo?('<br>R$ '+r.custo):'');
+  else if(r.custo) custo='R$ '+r.custo;
+  else custo='Não';
   const acao = acionarBtns(r);
+  const canEdit = SESSION.role==='admin' || r.resp===SESSION.name;
   let adv='';
-  if(r.status!=='ok'){
+  if(!canEdit){ adv='<span style="color:var(--ink-muted);font-size:11px">somente leitura</span>'; }
+  else if(r.status!=='ok'){
     adv = `<button class="tiny-btn y" onclick="advance(${r.id},'tratamento')">Em tratamento</button><button class="tiny-btn g" onclick="advance(${r.id},'ok')">Dar OK</button>`;
   } else {
     adv = `<button class="tiny-btn" onclick="advance(${r.id},'aberto')">Reabrir</button>`;
@@ -853,20 +988,21 @@ function rowTram(r){
     <td style="max-width:260px"><b>${esc(r.ocorr||'—')}</b>${r.obs?`<div style="color:var(--ink-muted);font-size:11.5px;margin-top:3px">${esc(r.obs)}</div>`:''}<div style="font-size:11px;color:var(--ink-muted);margin-top:4px">por ${esc(r.criadoPor)}</div></td>
     <td>${fmtData(r.data)}</td><td>${esc(r.placa)||'—'}</td>
     <td><span class="tag-pill">${esc(r.resp)}</span></td>
-    <td>${esc(r.tipo)}</td><td>${esc(r.ref)||'—'}</td><td>${custo}</td>
+    <td>${esc(r.tipo)}${r.sub?`<div class="tag-pill" style="margin-top:3px">${esc(r.sub)}</div>`:''}</td><td>${esc(r.ref)||'—'}</td><td>${custo}</td>
     <td><span class="st-badge ${stCls}">${stTxt}</span></td>
     <td><div class="act-row">${acao}${adv}</div></td>
   </tr>`;
 }
 function acionarBtns(r){
   if(!r.informar) return '';
-  const msg = encodeURIComponent(`Ocorrência PORTOEX (${VERT==='NC'?'Não Conformidade':'Erro Operacional'})\nResponsável: ${r.resp}\nTipo: ${r.tipo}\nPlaca: ${r.placa||'-'}\nRef: ${r.ref||'-'}\nDescrição: ${r.ocorr}`);
-  const mail=`mailto:?subject=${encodeURIComponent('Ocorrência PORTOEX — '+r.tipo)}&body=${msg}`;
-  const wa=`https://wa.me/?text=${msg}`;
+  const msg = encodeURIComponent(buildMsg(r));
+  const num=waFor(r.resp), emails=emailsFor(r.resp);
+  const mail=`mailto:${emails}?subject=${encodeURIComponent('Ocorrência PORTOEX — '+r.tipo)}&body=${msg}`;
+  const wa=`https://wa.me/${num}?text=${msg}`;
   return `<a class="icobtn" title="Enviar por e-mail" href="${mail}"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18v12H3z" stroke="currentColor" stroke-width="1.6"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="1.6"/></svg></a>
   <a class="icobtn wa" title="Enviar por WhatsApp" href="${wa}" target="_blank"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20l1.4-4A8 8 0 1112 20a8 8 0 01-4.6-1.4L4 20z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 9c0 3 3 6 6 6l1.2-1.6-2-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-2L9 9z" fill="currentColor"/></svg></a>`;
 }
-function advance(id,st){ const r=STATE.registros.find(x=>x.id===id); if(!r)return; r.status=st; save(); toast(st==='ok'?'Ocorrência finalizada (OK).':st==='tratamento'?'Marcada em tratamento.':'Ocorrência reaberta.'); renderAll(); }
+function advance(id,st){ const r=STATE.registros.find(x=>x.id===id); if(!r)return; if(!(SESSION.role==='admin'||r.resp===SESSION.name)){ toast('Você só pode alterar as ocorrências do seu setor.'); return; } r.status=st; save(); toast(st==='ok'?'Ocorrência finalizada (OK).':st==='tratamento'?'Marcada em tratamento.':'Ocorrência reaberta.'); renderAll(); }
 
 /* ---- ANÁLISE DA BASE ---- */
 function setBaseMode(m){ baseMode=m; document.querySelectorAll('#baseModeSeg button').forEach(b=>b.classList.toggle('active',b.dataset.m===m)); fillBaseFilter(); renderBase(); }
@@ -908,11 +1044,12 @@ function crossFor(mode,sel){
   function add(a,b){ map.set(b,(map.get(b)||0)+1); }
   if(VERT==='NC'&&SHEET){
     SHEET.records.forEach(r=>{
+      if(!passMonth(r.data))return;
       if(mode==='resp'&&r.resp===sel)add(r.resp,r.tipo);
       if(mode==='tipo'&&r.tipo===sel)add(r.tipo,r.resp);
     });
   }
-  visibleReg().filter(r=>r.vert===VERT).forEach(r=>{
+  visibleReg().filter(r=>r.vert===VERT&&passMonth(r.data)).forEach(r=>{
     if(mode==='resp'&&r.resp===sel)add(r.resp,r.tipo);
     if(mode==='tipo'&&r.tipo===sel)add(r.tipo,r.resp);
   });
@@ -923,18 +1060,68 @@ function crossFor(mode,sel){
 function fillSelectsOnce(){
   const opt=(a)=>a.map(x=>`<option>${esc(x)}</option>`).join('');
   document.getElementById('fResp').innerHTML='<option value="" disabled selected>Selecione…</option>'+opt(RESPONSAVEIS);
-  document.getElementById('fTipo').innerHTML='<option value="" disabled selected>Selecione…</option>'+opt(TIPOS);
   document.getElementById('tramResp').innerHTML='<option value="">Todos os responsáveis</option>'+opt(RESPONSAVEIS);
   document.getElementById('admNewResp').innerHTML=opt(RESPONSAVEIS);
+  document.getElementById('ctResp').innerHTML=opt(RESPONSAVEIS);
+  fillTipoSelect();
   fillBaseFilter();
 }
-function setInformar(v){ informarFlag=v; document.getElementById('infS').classList.toggle('on',v); document.getElementById('infN').classList.toggle('on',!v); }
+/* ---- Contatos / envio automático ---- */
+function contatosFor(resp){ return STATE.contatos.filter(c=>c.resp===resp); }
+function waNumber(tel){ let d=String(tel||'').replace(/\D/g,''); if(!d)return''; if(d.length<=11 && d.indexOf('55')!==0) d='55'+d; return d; }
+function emailsFor(resp){ return contatosFor(resp).map(c=>c.email).filter(Boolean).join(','); }
+function waFor(resp){ return contatosFor(resp).map(c=>waNumber(c.tel)).find(Boolean)||''; }
+function updateSendHint(){
+  const el=document.getElementById('sendHint'); if(!el)return;
+  const resp=document.getElementById('fResp').value;
+  const cs=contatosFor(resp);
+  if(!resp){ el.innerHTML='Você pode enviar agora e também depois, pelos ícones no Trâmite.'; return; }
+  if(!cs.length){ el.innerHTML='⚠ Sem contato cadastrado para <b>'+esc(resp)+'</b>. Cadastre em Administração › Contatos para o envio automático.'; return; }
+  const nomes=cs.map(c=>esc(c.nome||'')).filter(Boolean).join(', ');
+  const tel=cs.map(c=>c.tel).find(Boolean)||'—';
+  const mail=emailsFor(resp)||'—';
+  el.innerHTML='Enviar para <b>'+(nomes||esc(resp))+'</b> · WhatsApp: '+esc(tel)+' · E-mail: '+esc(mail);
+}
+function sendTo(ch,resp,tipo,msg){
+  if(ch==='wa'){
+    const num=waFor(resp);
+    if(!num) toast('Sem WhatsApp cadastrado para '+resp+'. Abrindo para você escolher o contato.');
+    window.open('https://wa.me/'+(num||'')+'?text='+encodeURIComponent(msg),'_blank');
+  } else {
+    const emails=emailsFor(resp);
+    if(!emails) toast('Sem e-mail cadastrado para '+resp+'.');
+    window.location.href='mailto:'+emails+'?subject='+encodeURIComponent('Ocorrência PORTOEX — '+tipo)+'&body='+encodeURIComponent(msg);
+  }
+}
+function fillTipoSelect(){
+  document.getElementById('fTipo').innerHTML='<option value="" disabled selected>Selecione…</option>'+STATE.tipos.map(t=>`<option>${esc(t.nome)}</option>`).join('');
+}
+function fillSub(){
+  const t=STATE.tipos.find(x=>x.nome===document.getElementById('fTipo').value);
+  const subs=(t&&t.subs)?t.subs:[];
+  document.getElementById('fSub').innerHTML='<option value="">'+(subs.length?'Selecione o sub-grupo…':'— sem sub-grupos —')+'</option>'+subs.map(s=>`<option>${esc(s)}</option>`).join('');
+  document.getElementById('subHint').textContent = (t&&!subs.length)?'Cadastre sub-grupos deste tipo no painel Admin.':'';
+}
+let custoFlag='nenhum';
+function setCusto(c){ custoFlag=c; document.querySelectorAll('#custoChips .radio-chip').forEach(ch=>ch.classList.toggle('on',ch.dataset.c===c)); const f=document.getElementById('fCusto'); f.style.display=(c==='nenhum')?'none':'block'; if(c==='nenhum')f.value=''; }
+function setInformar(v){ informarFlag=v; document.getElementById('infS').classList.toggle('on',v); document.getElementById('infN').classList.toggle('on',!v); document.getElementById('sendRow').classList.toggle('on',v); }
+function buildMsg(r){ return `Ocorrência PORTOEX (${VERT==='NC'?'Não Conformidade':'Erro Operacional'})\nResponsável: ${r.resp}\nTipo: ${r.tipo}${r.sub?(' › '+r.sub):''}\nPlaca: ${r.placa||'-'}\nRef: ${r.ref||'-'}\nDescrição: ${r.ocorr||'-'}`; }
+function sendFromForm(ch){
+  const resp=document.getElementById('fResp').value, tipo=document.getElementById('fTipo').value;
+  if(!resp||!tipo){ toast('Escolha responsável e tipo antes de enviar.'); return; }
+  const msg=buildMsg({resp,tipo,sub:document.getElementById('fSub').value,placa:document.getElementById('fPlaca').value.trim().toUpperCase(),ref:document.getElementById('fRef').value.trim(),ocorr:document.getElementById('fOcorr').value.trim()});
+  sendTo(ch,resp,tipo,msg);
+}
 function openCadastro(){
   document.getElementById('cadTitle').textContent = VERT==='NC'?'Nova Não Conformidade':'Novo Erro Operacional';
   document.getElementById('fData').value = new Date().toISOString().slice(0,10);
   ['fOcorr','fPlaca','fRef','fObs','fCusto'].forEach(id=>document.getElementById(id).value='');
+  fillTipoSelect();
   document.getElementById('fResp').selectedIndex=0; document.getElementById('fTipo').selectedIndex=0;
+  fillSub();
+  setCusto('nenhum');
   setInformar(true);
+  updateSendHint();
   document.getElementById('cadSave').className='btn-cta'+(VERT==='ERRO'?' erro':'');
   document.getElementById('modalCad').classList.add('on');
 }
@@ -952,16 +1139,18 @@ function saveCadastro(){
     dataCad:new Date().toISOString(),
     placa:document.getElementById('fPlaca').value.trim().toUpperCase(),
     resp, tipo,
+    sub:document.getElementById('fSub').value,
     ref:document.getElementById('fRef').value.trim(),
     obs:document.getElementById('fObs').value.trim(),
-    custo:normMoney(document.getElementById('fCusto').value),
+    custoTipo:custoFlag,
+    custo:(custoFlag==='nenhum'?'':normMoney(document.getElementById('fCusto').value)),
     informar:informarFlag,
     criadoPor:SESSION.name==='Admin'?resp:SESSION.name,
     status:'aberto'
   });
   save(); closeModal('modalCad');
   toast('Ocorrência registrada!'+(informarFlag?' Acione o setor no Trâmite.':''));
-  renderAll();
+  fillMonthFilter(); renderAll();
 }
 function normMoney(v){ v=(v||'').trim(); if(!v)return''; return v.replace(/[^\d.,]/g,''); }
 
@@ -987,9 +1176,44 @@ function renderAdmin(){
   // tags de setores p/ grupo
   const tg=document.getElementById('admGrupoTags');
   tg.innerHTML=RESPONSAVEIS.map(r=>`<span class="ptag" data-r="${esc(r)}" onclick="this.classList.toggle('on')">${esc(r)}</span>`).join('');
+  renderTipos();
+  renderContatos();
   // grupos disponíveis no add setor (via prompt simplificado abaixo)
 }
 function nivelLabel(n){ return n==='tudo'?'tudo':n==='grupo'?'grupo de trabalho':'só o próprio setor'; }
+/* ---- Tipos & sub-grupos (admin) ---- */
+let admTipoSel=null;
+function renderTipos(){
+  const lt=document.getElementById('admTipos'); if(!lt)return;
+  lt.innerHTML = STATE.tipos.length ? STATE.tipos.map((t,i)=>`<div class="chip-item ${admTipoSel===t.nome?'sel':''}" style="cursor:pointer" onclick="selTipo('${enc(t.nome)}')"><div><div class="name">${esc(t.nome)}</div><div class="meta">${t.subs.length} sub-grupo(s)</div></div><button class="rm" title="Remover" onclick="event.stopPropagation();rmTipo(${i})">×</button></div>`).join('') : '<div class="empty" style="padding:14px">Nenhum tipo cadastrado.</div>';
+  const ls=document.getElementById('admSubs');
+  const t=STATE.tipos.find(x=>x.nome===admTipoSel);
+  document.getElementById('subOfLabel').textContent = t? t.nome : '— selecione um tipo —';
+  ls.innerHTML = t ? (t.subs.length ? t.subs.map((s,i)=>`<div class="chip-item"><div class="name">${esc(s)}</div><button class="rm" onclick="rmSub(${i})">×</button></div>`).join('') : '<div class="empty" style="padding:14px">Sem sub-grupos. Adicione abaixo.</div>') : '<div class="empty" style="padding:14px">Clique num tipo à esquerda para ver/adicionar sub-grupos.</div>';
+}
+function selTipo(n){ admTipoSel=n; renderTipos(); }
+function addTipo(){ const v=document.getElementById('admNewTipo').value.trim(); if(!v){toast('Digite o tipo.');return;} if(STATE.tipos.some(t=>t.nome.toLowerCase()===v.toLowerCase())){toast('Esse tipo já existe.');return;} STATE.tipos.push({nome:v,subs:[]}); admTipoSel=v; save(); document.getElementById('admNewTipo').value=''; renderTipos(); toast('Tipo adicionado.'); }
+function rmTipo(i){ const t=STATE.tipos[i]; if(!t)return; if(admTipoSel===t.nome)admTipoSel=null; STATE.tipos.splice(i,1); save(); renderTipos(); toast('Tipo removido.'); }
+function addSub(){ const t=STATE.tipos.find(x=>x.nome===admTipoSel); if(!t){toast('Selecione um tipo primeiro.');return;} const v=document.getElementById('admNewSub').value.trim(); if(!v){toast('Digite o sub-grupo.');return;} if(t.subs.includes(v)){toast('Sub-grupo já existe.');return;} t.subs.push(v); save(); document.getElementById('admNewSub').value=''; renderTipos(); toast('Sub-grupo adicionado.'); }
+function rmSub(i){ const t=STATE.tipos.find(x=>x.nome===admTipoSel); if(!t)return; t.subs.splice(i,1); save(); renderTipos(); }
+/* ---- Contatos (admin) ---- */
+function renderContatos(){
+  const el=document.getElementById('admContatos'); if(!el)return;
+  if(!STATE.contatos.length){ el.innerHTML='<div class="empty" style="padding:14px">Nenhum contato vinculado ainda.</div>'; return; }
+  const order=[...STATE.contatos].sort((a,b)=>a.resp.localeCompare(b.resp));
+  el.innerHTML=order.map(c=>{ const i=STATE.contatos.indexOf(c); return `<div class="chip-item"><div><div class="name">${esc(c.resp)} — ${esc(c.nome||'—')}</div><div class="meta">📱 ${esc(c.tel||'—')} &nbsp;·&nbsp; ✉️ ${esc(c.email||'—')}</div></div><button class="rm" onclick="rmContato(${i})">×</button></div>`; }).join('');
+}
+function addContato(){
+  const resp=document.getElementById('ctResp').value;
+  const nome=document.getElementById('ctNome').value.trim();
+  const tel=document.getElementById('ctTel').value.trim();
+  const email=document.getElementById('ctEmail').value.trim();
+  if(!tel && !email){ toast('Informe ao menos WhatsApp ou e-mail.'); return; }
+  STATE.contatos.push({resp,nome,tel,email});
+  save(); document.getElementById('ctNome').value=''; document.getElementById('ctTel').value=''; document.getElementById('ctEmail').value='';
+  renderContatos(); toast('Contato vinculado a '+resp+'.');
+}
+function rmContato(i){ STATE.contatos.splice(i,1); save(); renderContatos(); }
 function addSetor(){
   const resp=document.getElementById('admNewResp').value;
   const pass=document.getElementById('admNewPass').value.trim();
