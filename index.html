@@ -177,7 +177,18 @@ table.data tr:hover td{background:var(--surface-2)}
 .st-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;display:inline-block}
 .st-aberto{background:var(--red-soft);color:#b3282c}
 .st-tratamento{background:var(--yellow-soft);color:#9a7400}
+.st-aceito{background:var(--blue-100);color:var(--navy)}
 .st-ok{background:var(--green-soft);color:#157a41}
+.resp-summary{background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:13px 15px;margin-bottom:14px}
+.resp-summary .meta{font-size:12px;color:var(--ink-dim);margin-top:4px}
+.hist-wrap{max-height:210px;overflow:auto;margin-bottom:14px;display:flex;flex-direction:column;gap:8px}
+.hist-item{border-left:3px solid var(--border-strong);padding:7px 11px;background:#fff;border-radius:0 8px 8px 0}
+.hist-item.S{border-left-color:var(--green)} .hist-item.N{border-left-color:var(--red)}
+.hist-top{font-size:12px;color:var(--ink)}
+.hist-when{color:var(--ink-muted);font-size:11px;margin-left:6px}
+.hist-obs{font-size:12.5px;color:var(--ink-dim);margin-top:3px;white-space:pre-wrap}
+.hist-plano{font-size:12.5px;color:var(--navy);margin-top:4px;background:var(--blue-100);border-radius:7px;padding:6px 9px}
+.plano-box{background:var(--blue-100);border:1px solid #c5dbf5;border-radius:9px;padding:8px 11px;font-size:12.5px;color:var(--navy-2);margin-top:3px;white-space:pre-wrap}
 .tag-pill{font-size:11px;background:var(--surface-2);border:1px solid var(--border);padding:2px 8px;border-radius:6px;color:var(--ink-dim);white-space:nowrap}
 .icobtn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;display:inline-grid;place-items:center;cursor:pointer;color:var(--ink-dim)}
 .icobtn:hover{border-color:var(--blue);color:var(--blue)}
@@ -352,7 +363,7 @@ textarea{resize:vertical;min-height:70px}
       <div class="toolbar">
         <div class="seg" id="tramFilterSeg">
           <button class="active" data-f="all" onclick="setTramFilter('all')">Todas</button>
-          <button data-f="aberto" onclick="setTramFilter('aberto')">Abertas</button>
+          <button data-f="aberto" onclick="setTramFilter('aberto')">Pendentes</button>
           <button data-f="tratamento" onclick="setTramFilter('tratamento')">Em tratamento</button>
           <button data-f="ok" onclick="setTramFilter('ok')">Finalizadas</button>
         </div>
@@ -506,6 +517,15 @@ textarea{resize:vertical;min-height:70px}
   </div>
 </div>
 
+<!-- ===== MODAL RESPOSTA / TRATAMENTO ===== -->
+<div class="modal-bg" id="modalResp">
+  <div class="modal">
+    <div class="modal-head"><h3 id="respTitle">Responder pendência</h3><button class="x" onclick="closeModal('modalResp')">×</button></div>
+    <div class="modal-body" id="respBody"></div>
+    <div class="modal-foot" id="respFoot"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -579,6 +599,15 @@ function normalizeState(){
   if(!Array.isArray(STATE.tipos)||!STATE.tipos.length) STATE.tipos=TIPOS.map(t=>({nome:t,subs:[]}));
   if(!Array.isArray(STATE.contatos)) STATE.contatos=[];
   if(!STATE.adminPass) STATE.adminPass='portoex';
+  // migração de status para o ciclo de tratamento
+  STATE.registros.forEach(r=>{
+    if(!Array.isArray(r.hist)) r.hist=[];
+    if(r.status==='aberto') r.status='pendente_resp';
+    else if(r.status==='tratamento') r.status='aceito';
+    else if(!['pendente_resp','pendente_criador','aceito','ok'].includes(r.status)) r.status='pendente_resp';
+    if(r.pendCom===undefined) r.pendCom = (r.status==='ok')?'':(r.status==='pendente_criador'?r.criadoPor:r.resp);
+    if(r.plano===undefined) r.plano='';
+  });
 }
 let STATE = load();
 normalizeState();
@@ -908,16 +937,16 @@ function allRespNames(){
 }
 function semData(){
   const map=new Map();
-  function bump(n,k,v){ if(!n)return; if(!map.has(n))map.set(n,{r:0,y:0,g:0,total:0,aberto:0,ok:0,custo:0}); map.get(n)[k]+=v; }
+  function bump(n,k,v){ if(!n)return; if(!map.has(n))map.set(n,{r:0,y:0,g:0,total:0,pend:0,ok:0,custo:0}); map.get(n)[k]+=v; }
   if(VERT==='NC'&&SHEET){ SHEET.records.forEach(rec=>{ if(passMonth(rec.data)) bump(rec.resp,'total',1); }); }
   STATE.registros.filter(r=>r.vert===VERT&&passMonth(r.data)).forEach(r=>{
-    bump(r.resp,'total',1);
-    if(r.status==='ok'){ bump(r.resp,'g',1); bump(r.resp,'ok',1); }
-    else { bump(r.resp,'y',1); bump(r.resp,'aberto',1); }
-    bump(r.resp,'custo',parseMoney(r.custo));
-    if(r.criadoPor && r.criadoPor!==r.resp){
-      bump(r.criadoPor,'total',1);
-      if(r.status==='ok') bump(r.criadoPor,'g',1); else bump(r.criadoPor,'r',1);
+    const involved=[r.criadoPor,r.resp].filter((v,i,a)=>v&&a.indexOf(v)===i);
+    involved.forEach(n=>bump(n,'total',1));
+    if(r.resp) bump(r.resp,'custo',parseMoney(r.custo));
+    if(r.status==='ok'){ involved.forEach(n=>{ bump(n,'g',1); bump(n,'ok',1); }); }
+    else {
+      const holder=r.pendCom||r.resp;
+      involved.forEach(n=>{ if(n===holder){ bump(n,'y',1); bump(n,'pend',1); } else { bump(n,'r',1); } });
     }
   });
   return map;
@@ -935,11 +964,11 @@ function renderSem(){
   el.innerHTML = names.map(n=>semCard(n, map.get(n)||z, n===SESSION.name)).join('');
 }
 function semCard(name,v,own){
-  const dot = v.r?'var(--red)':v.y?'var(--yellow)':v.total?'var(--green)':'var(--ink-muted)';
-  const open = (v.r>0 || v.y>0); // ocorrências em aberto -> piscar
+  const dot = v.y?'var(--yellow)':v.r?'var(--red)':v.total?'var(--green)':'var(--ink-muted)';
+  const open = (v.y>0); // pendência COM este setor -> piscar
   const lights=[];
-  if(v.r>0) lights.push(`<div class="light r" onclick="goTram('${enc(name)}','aberto')"><div class="n">${v.r}</div><div class="l">Apontou outro</div></div>`);
-  if(v.y>0) lights.push(`<div class="light y" onclick="goTram('${enc(name)}','')"><div class="n">${v.y}</div><div class="l">Para tratar</div></div>`);
+  if(v.y>0) lights.push(`<div class="light y" onclick="goTram('${enc(name)}','aberto')"><div class="n">${v.y}</div><div class="l">Sua pendência</div></div>`);
+  if(v.r>0) lights.push(`<div class="light r" onclick="goTram('${enc(name)}','aberto')"><div class="n">${v.r}</div><div class="l">Aguardando</div></div>`);
   if(v.g>0) lights.push(`<div class="light g" onclick="goTram('${enc(name)}','ok')"><div class="n">${v.g}</div><div class="l">OK</div></div>`);
   const lightsHtml = lights.length ? `<div class="sem-lights">${lights.join('')}</div>` : '';
   return `<div class="sem-card${own?' own':''}${open?' blink':''}">
@@ -947,24 +976,25 @@ function semCard(name,v,own){
     <h4><span class="dot" style="background:${dot}"></span>${esc(name)}${own?' <span style="font-size:10px;color:var(--orange);font-weight:800">• VOCÊ</span>':''}</h4>
     <div class="resp-sub">${lightsHtml?'Situação':'Resumo'}</div>
     ${lightsHtml}
-    <div class="sem-foot"><span><b>${v.total}</b> ocorr.</span><span><b>${v.aberto}</b> aberto</span><span>${v.custo?('R$ <b>'+fmtMoney(v.custo)+'</b>'):'sem custo'}</span></div>
+    <div class="sem-foot"><span><b>${v.total}</b> ocorr.</span><span><b>${v.pend}</b> pendência(s)</span><span>${v.custo?('R$ <b>'+fmtMoney(v.custo)+'</b>'):'sem custo'}</span></div>
   </div>`;
 }
 function geralData(mineOnly){
-  let total=0,ok=0,custo=0,r=0,y=0,g=0;
+  let total=0,ok=0,custo=0,dev=0,resp=0,g=0;
   if(VERT==='NC'&&SHEET){ SHEET.records.forEach(rec=>{ if(!passMonth(rec.data))return; if(mineOnly && rec.resp!==SESSION.name)return; total++; }); }
   STATE.registros.filter(x=>x.vert===VERT&&passMonth(x.data)).forEach(x=>{
     if(mineOnly && x.resp!==SESSION.name && x.criadoPor!==SESSION.name) return;
     total++; custo+=parseMoney(x.custo);
     if(x.status==='ok'){ ok++; g++; }
-    else { y++; if(x.criadoPor && x.criadoPor!==x.resp) r++; }
+    else if(x.status==='pendente_criador'){ dev++; }
+    else { resp++; } // pendente_resp ou aceito
   });
-  return {total,ok,custo,r,y,g};
+  return {total,ok,custo,dev,resp,g};
 }
 function renderGeral(mineOnly){
   const el=document.getElementById('geralCard'); if(!el)return;
   const d=geralData(mineOnly);
-  const open=(d.r+d.y)>0;
+  const open=(d.dev+d.resp)>0;
   el.innerHTML=`<div class="geral-card${open?' blink':''}">
     <div>
       <div class="geral-eyebrow">${mineOnly?'Meu resumo geral':'Visão geral — todos os responsáveis'}</div>
@@ -972,8 +1002,8 @@ function renderGeral(mineOnly){
       <div class="geral-custo">Finalizadas: <b>${fmt(d.ok)}</b> &nbsp;·&nbsp; Custo no recorte: <b>R$ ${fmtMoney(d.custo)}</b></div>
     </div>
     <div class="geral-lights">
-      <div class="light r"><div class="n">${d.r}</div><div class="l">Apontou outro</div></div>
-      <div class="light y"><div class="n">${d.y}</div><div class="l">Para tratar</div></div>
+      <div class="light r"><div class="n">${d.dev}</div><div class="l">Devolvidas</div></div>
+      <div class="light y"><div class="n">${d.resp}</div><div class="l">Com responsável</div></div>
       <div class="light g"><div class="n">${d.g}</div><div class="l">Finalizadas</div></div>
     </div>
   </div>`;
@@ -988,7 +1018,9 @@ function renderTram(){
   const respF=document.getElementById('tramResp').value;
   const q=(document.getElementById('tramSearch').value||'').toLowerCase();
   let regs=visibleReg().filter(r=>r.vert===VERT&&passMonth(r.data));
-  if(tramFilter!=='all')regs=regs.filter(r=>r.status===tramFilter);
+  if(tramFilter==='aberto') regs=regs.filter(r=>r.status==='pendente_resp'||r.status==='pendente_criador');
+  else if(tramFilter==='tratamento') regs=regs.filter(r=>r.status==='aceito');
+  else if(tramFilter==='ok') regs=regs.filter(r=>r.status==='ok');
   if(respF)regs=regs.filter(r=>r.resp===respF||r.criadoPor===respF);
   if(q)regs=regs.filter(r=>(r.ocorr+' '+r.placa+' '+r.ref+' '+r.tipo).toLowerCase().includes(q));
   regs.sort((a,b)=>(b.id-a.id));
@@ -996,42 +1028,105 @@ function renderTram(){
   emp.innerHTML='';
   tb.innerHTML=`<thead><tr><th>Ocorrência</th><th>Data</th><th>Placa</th><th>Responsável</th><th>Tipo</th><th>Ref.</th><th>Custo</th><th>Status</th><th>Ações</th></tr></thead><tbody>${regs.map(rowTram).join('')}</tbody>`;
 }
+function statusLabel(r){ return r.status==='ok'?'Finalizada':r.status==='aceito'?('Em tratamento com '+r.resp):r.status==='pendente_criador'?('Devolvida a '+r.criadoPor):('Pendente com '+r.resp); }
+function stClass(r){ return r.status==='ok'?'st-ok':r.status==='aceito'?'st-aceito':r.status==='pendente_criador'?'st-aberto':'st-tratamento'; }
+function canAct(r){ return SESSION.role==='admin' || r.pendCom===SESSION.name; }
 function rowTram(r){
-  const stCls = r.status==='ok'?'st-ok':r.status==='tratamento'?'st-tratamento':'st-aberto';
-  const stTxt = r.status==='ok'?'Finalizada':r.status==='tratamento'?'Em tratamento':'Aberta';
   let custo;
   if(r.custoTipo==='direto') custo='<b style="color:var(--red)">Direto</b>'+(r.custo?('<br>R$ '+r.custo):'');
   else if(r.custoTipo==='indireto') custo='<b style="color:var(--orange)">Indireto</b>'+(r.custo?('<br>R$ '+r.custo):'');
   else if(r.custo) custo='R$ '+r.custo;
   else custo='Não';
   const acao = acionarBtns(r);
-  const canEdit = SESSION.role==='admin' || r.resp===SESSION.name;
   let adv='';
-  if(!canEdit){ adv='<span style="color:var(--ink-muted);font-size:11px">somente leitura</span>'; }
-  else if(r.status!=='ok'){
-    adv = `<button class="tiny-btn y" onclick="advance(${r.id},'tratamento')">Em tratamento</button><button class="tiny-btn g" onclick="advance(${r.id},'ok')">Dar OK</button>`;
+  if(r.status==='ok'){
+    adv = (SESSION.role==='admin'||r.criadoPor===SESSION.name||r.resp===SESSION.name)?`<button class="tiny-btn" onclick="openResp(${r.id})">Ver / reabrir</button>`:'';
+  } else if(canAct(r)){
+    adv = `<button class="tiny-btn y" onclick="openResp(${r.id})">Responder pendência</button>`;
   } else {
-    adv = `<button class="tiny-btn" onclick="advance(${r.id},'aberto')">Reabrir</button>`;
+    adv = `<span style="color:var(--ink-muted);font-size:11px">aguardando ${esc(r.pendCom||r.resp)}</span>`;
   }
+  const plano = r.plano?`<div class="plano-box" style="margin-top:5px">📋 ${esc(r.plano)}</div>`:'';
   return `<tr>
-    <td style="max-width:260px"><b>${esc(r.ocorr||'—')}</b>${r.obs?`<div style="color:var(--ink-muted);font-size:11.5px;margin-top:3px">${esc(r.obs)}</div>`:''}<div style="font-size:11px;color:var(--ink-muted);margin-top:4px">por ${esc(r.criadoPor)}</div></td>
+    <td style="max-width:260px"><b>${esc(r.ocorr||'—')}</b>${r.obs?`<div style="color:var(--ink-muted);font-size:11.5px;margin-top:3px">${esc(r.obs)}</div>`:''}${plano}<div style="font-size:11px;color:var(--ink-muted);margin-top:4px">por ${esc(r.criadoPor)}</div></td>
     <td>${fmtData(r.data)}</td><td>${esc(r.placa)||'—'}</td>
     <td><span class="tag-pill">${esc(r.resp)}</span></td>
     <td>${esc(r.tipo)}${r.sub?`<div class="tag-pill" style="margin-top:3px">${esc(r.sub)}</div>`:''}</td><td>${esc(r.ref)||'—'}</td><td>${custo}</td>
-    <td><span class="st-badge ${stCls}">${stTxt}</span></td>
+    <td><span class="st-badge ${stClass(r)}">${esc(statusLabel(r))}</span></td>
     <td><div class="act-row">${acao}${adv}</div></td>
   </tr>`;
 }
 function acionarBtns(r){
   if(!r.informar) return '';
+  const target=r.pendCom||r.resp;
   const msg = encodeURIComponent(buildMsg(r));
-  const num=waFor(r.resp), emails=emailsFor(r.resp);
+  const num=waFor(target), emails=emailsFor(target);
   const mail=`mailto:${emails}?subject=${encodeURIComponent('Ocorrência PORTOEX — '+r.tipo)}&body=${msg}`;
   const wa=`https://wa.me/${num}?text=${msg}`;
   return `<a class="icobtn" title="Enviar por e-mail" href="${mail}"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18v12H3z" stroke="currentColor" stroke-width="1.6"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="1.6"/></svg></a>
   <a class="icobtn wa" title="Enviar por WhatsApp" href="${wa}" target="_blank"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20l1.4-4A8 8 0 1112 20a8 8 0 01-4.6-1.4L4 20z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 9c0 3 3 6 6 6l1.2-1.6-2-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-2L9 9z" fill="currentColor"/></svg></a>`;
 }
-function advance(id,st){ const r=STATE.registros.find(x=>x.id===id); if(!r)return; if(!(SESSION.role==='admin'||r.resp===SESSION.name)){ toast('Você só pode alterar as ocorrências do seu setor.'); return; } r.status=st; save(); toast(st==='ok'?'Ocorrência finalizada (OK).':st==='tratamento'?'Marcada em tratamento.':'Ocorrência reaberta.'); renderAll(); }
+/* ===== Ciclo de tratamento (resposta / aceite / plano / devolução) ===== */
+let RESP_ID=null;
+function cur(){ return STATE.registros.find(x=>x.id===RESP_ID); }
+function fmtWhen(iso){ try{ const d=new Date(iso); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+function pushHist(r,acao,obs,aceite,plano){ if(!Array.isArray(r.hist))r.hist=[]; r.hist.push({quem:SESSION.name,acao,obs:obs||'',aceite:aceite||'',plano:plano||'',quando:new Date().toISOString()}); }
+function openResp(id){
+  const r=STATE.registros.find(x=>x.id===id); if(!r)return;
+  if(!canAct(r) && r.status!=='ok'){ toast('Esta pendência está com '+(r.pendCom||r.resp)+'.'); return; }
+  RESP_ID=id;
+  document.getElementById('respTitle').textContent = r.status==='ok'?'Ocorrência finalizada':'Responder pendência';
+  const hist=(r.hist||[]).map(h=>`<div class="hist-item ${h.aceite||''}"><div class="hist-top"><b>${esc(h.quem)}</b> · ${esc(h.acao)}${h.aceite?(' · aceite: <b>'+h.aceite+'</b>'):''}<span class="hist-when">${fmtWhen(h.quando)}</span></div>${h.obs?`<div class="hist-obs">${esc(h.obs)}</div>`:''}${h.plano?`<div class="hist-plano">📋 Plano: ${esc(h.plano)}</div>`:''}</div>`).join('') || '<div class="hint-inline">Sem histórico ainda.</div>';
+  const isResp = r.status==='pendente_resp';
+  const isAceito = r.status==='aceito';
+  const isCriador = r.status==='pendente_criador';
+  let extra='';
+  if(isResp||isAceito){
+    extra=`<div class="field"><label>Plano de ação ${isResp?'(obrigatório ao aceitar)':''}</label><textarea id="respPlano" placeholder="Descreva o que será feito para sanar o problema…">${esc(r.plano||'')}</textarea><div class="hint-inline">Preenchido pelo responsável apontado como causador.</div></div>`;
+  }
+  if(isCriador){
+    extra=`<div class="field"><label>Reenviar para o responsável</label><select id="respResp">${RESPONSAVEIS.map(x=>`<option ${x===r.resp?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`;
+  }
+  document.getElementById('respBody').innerHTML=`
+    <div class="resp-summary">
+      <div><b>${esc(r.ocorr||'—')}</b></div>
+      <div class="meta">Tipo: ${esc(r.tipo)}${r.sub?(' › '+esc(r.sub)):''} · Placa: ${esc(r.placa)||'-'} · Ref: ${esc(r.ref)||'-'}</div>
+      <div class="meta">Aberta por <b>${esc(r.criadoPor)}</b> · Responsável <b>${esc(r.resp)}</b> · <b>${esc(statusLabel(r))}</b></div>
+      ${r.plano?`<div class="plano-box">📋 Plano de ação atual: ${esc(r.plano)}</div>`:''}
+    </div>
+    <div style="font-weight:700;font-size:12px;color:var(--ink-dim);margin-bottom:8px">HISTÓRICO DO TRÂMITE</div>
+    <div class="hist-wrap">${hist}</div>
+    ${extra}
+    <div class="field"><label>Observação</label><textarea id="respObs" placeholder="Escreva sua resposta / justificativa…"></textarea></div>`;
+  document.getElementById('respFoot').innerHTML=respButtons(r);
+  document.getElementById('modalResp').classList.add('on');
+}
+function respButtons(r){
+  if(r.status==='pendente_resp') return `<button class="btn-ghost" onclick="doAceite(false)">Recusar e devolver</button><button class="btn-cta" onclick="doAceite(true)">Aceitar e tratar</button>`;
+  if(r.status==='aceito') return `<button class="btn-ghost" onclick="doDevolver()">Devolver ao criador</button><button class="btn-cta" onclick="doConcluir()">Concluir (dar OK)</button>`;
+  if(r.status==='pendente_criador') return `<button class="btn-ghost" onclick="doConcluir()">Encerrar (OK)</button><button class="btn-cta" onclick="doReenviar()">Reenviar ao responsável</button>`;
+  if(r.status==='ok') return `<button class="btn-ghost" onclick="doReabrir()">Reabrir</button>`;
+  return '';
+}
+function doAceite(accept){
+  const r=cur(); if(!r)return; const obs=document.getElementById('respObs').value.trim();
+  if(accept){
+    const plano=(document.getElementById('respPlano')||{}).value; const p=(plano||'').trim();
+    if(!p){ toast('Descreva o plano de ação para aceitar.'); return; }
+    r.plano=p; r.status='aceito'; r.pendCom=r.resp; pushHist(r,'Aceitou a responsabilidade',obs,'S',p);
+    toast('Aceita. Execute o plano e depois dê o OK.');
+  } else {
+    if(!obs){ toast('Explique o motivo da recusa na observação.'); return; }
+    r.status='pendente_criador'; r.pendCom=r.criadoPor; pushHist(r,'Recusou a responsabilidade',obs,'N','');
+    toast('Devolvida a '+r.criadoPor+'.');
+  }
+  finishResp();
+}
+function doDevolver(){ const r=cur(); if(!r)return; const obs=document.getElementById('respObs').value.trim(); if(!obs){ toast('Escreva uma observação.'); return; } r.status='pendente_criador'; r.pendCom=r.criadoPor; pushHist(r,'Devolveu ao criador',obs,'',''); toast('Devolvida a '+r.criadoPor+'.'); finishResp(); }
+function doReenviar(){ const r=cur(); if(!r)return; const obs=document.getElementById('respObs').value.trim(); const novo=document.getElementById('respResp').value; if(!obs){ toast('Escreva uma observação para o responsável.'); return; } r.resp=novo; r.status='pendente_resp'; r.pendCom=novo; pushHist(r,'Reenviou para '+novo,obs,'',''); toast('Reenviada a '+novo+'.'); finishResp(); }
+function doConcluir(){ const r=cur(); if(!r)return; const obs=document.getElementById('respObs').value.trim(); r.status='ok'; r.pendCom=''; pushHist(r,'Concluído (OK)',obs,'',''); toast('Ocorrência finalizada (OK).'); finishResp(); }
+function doReabrir(){ const r=cur(); if(!r)return; r.status='pendente_resp'; r.pendCom=r.resp; pushHist(r,'Reabriu a ocorrência',document.getElementById('respObs').value.trim(),'',''); toast('Reaberta.'); finishResp(); }
+function finishResp(){ save(); closeModal('modalResp'); fillMonthFilter(); renderAll(); }
 
 /* ---- ANÁLISE DA BASE ---- */
 function setBaseMode(m){ baseMode=m; document.querySelectorAll('#baseModeSeg button').forEach(b=>b.classList.toggle('active',b.dataset.m===m)); fillBaseFilter(); renderBase(); }
@@ -1175,7 +1270,10 @@ function saveCadastro(){
     custo:(custoFlag==='nenhum'?'':normMoney(document.getElementById('fCusto').value)),
     informar:informarFlag,
     criadoPor:SESSION.name==='Admin'?resp:SESSION.name,
-    status:'aberto'
+    status:'pendente_resp',
+    pendCom:resp,
+    plano:'',
+    hist:[{quem:(SESSION.name==='Admin'?resp:SESSION.name),acao:'Abertura da ocorrência',obs:document.getElementById('fObs').value.trim(),aceite:'',quando:new Date().toISOString()}]
   });
   save(); closeModal('modalCad');
   toast('Ocorrência registrada!'+(informarFlag?' Acione o setor no Trâmite.':''));
