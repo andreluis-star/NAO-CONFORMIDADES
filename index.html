@@ -730,7 +730,7 @@ function importTreatables(){
     const resp=mapResp(rec.resp);
     STATE.registros.push({
       id: Date.now()+(++impSeq), vert:'NC',
-      ocorr:(rec.tipo||'Ocorrência')+(rec.ref?(' — '+rec.ref):''),
+      ocorr:(rec.ocorr||'').trim() || ((rec.tipo||'Ocorrência')+(rec.ref?(' — '+rec.ref):'')),
       data:rec.data, dataCad:new Date().toISOString(),
       placa:rec.placa||'', resp, tipo:rec.tipo||'Não especificado', sub:'',
       ref:rec.ref||'', obs:'Importado da base (planilha).',
@@ -887,7 +887,7 @@ function loadViaJSONP(){
   });
 }
 // Colunas: A=DATA (cabeçalho em branco na planilha), B=PLACA, C=RESPONSÁVEL,
-// D=TIPO, E=REFERÊNCIA. Não dependemos do cabeçalho: consideramos linha de
+// D=TIPO, E=REFERÊNCIA, G=OCORRÊNCIA (descrição dos fatos). Não dependemos do cabeçalho: consideramos linha de
 // dados toda aquela cuja 1ª coluna for uma data DD/MM/AAAA. Assim ignoramos
 // automaticamente o cabeçalho e a tabela dinâmica que fica à direita na aba.
 function buildOcorrencias(rows){
@@ -906,7 +906,7 @@ function buildOcorrencias(rows){
     let y=parseInt(m[3],10); if(m[3].length===2)y+=2000;
     const mo=parseInt(m[2],10); const mk=y+'-'+String(mo).padStart(2,'0');
     byMonth.set(mk,(byMonth.get(mk)||0)+1);
-    records.push({resp,tipo,mes:MES_ABBR[mo-1]+'/'+String(y).slice(2),data,placa:(r[1]||'').trim(),ref:(r[4]||'').trim(),y,mo});
+    records.push({resp,tipo,mes:MES_ABBR[mo-1]+'/'+String(y).slice(2),data,placa:(r[1]||'').trim(),ref:(r[4]||'').trim(),ocorr:(r[6]||'').trim(),y,mo});
   }
   const mk=[...byMonth.keys()].sort();
   return {
