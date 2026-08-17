@@ -305,6 +305,7 @@ textarea{resize:vertical;min-height:70px}
       </div>
       <select class="mini-select" id="monthFilter" onchange="setMonth(this.value)" title="Filtrar por mês" style="max-width:150px"><option value="">Todos os meses</option></select>
       <div class="spacer"></div>
+      <button class="btn-ghost" id="btnRefresh" onclick="refreshFromSheet()" title="Buscar novos casos cadastrados na planilha e atualizar as descrições (coluna G)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="margin-right:4px"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4M20 12a8 8 0 0 1-13.7 5.7L4 16M4 20v-4h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>Atualizar base</button>
       <button class="btn-cta" id="btnNew" onclick="openCadastro()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Nova ocorrência</button>
       <div class="user-chip" id="cloudChip" title="Estado da nuvem"><span class="cdot local"></span> Local</div>
       <div class="user-chip"><span class="user-avatar" id="uav">A</span><span>Setor: <b id="uname">Admin</b></span></div>
@@ -851,6 +852,49 @@ async function loadSheet(){
     setStatus('Não consegui carregar a planilha viva ('+err.message+'). O restante do sistema funciona normalmente; a base de NC aparece assim que a planilha estiver acessível.',true);
   }
   fillMonthFilter(); updateBadges(); renderAll();
+}
+
+/* Atualiza descrições (coluna G) dos casos já importados da planilha, casando pela mesma srcKey usada na importação. */
+function updateImportedDescs(){
+  if(!SHEET) return 0;
+  const map=new Map(), seen={};
+  SHEET.records.forEach(rec=>{
+    if(!isTreat(rec.data)) return;
+    const base=[rec.data,rec.placa,rec.resp,rec.tipo,rec.ref].join('|');
+    seen[base]=(seen[base]||0)+1;
+    map.set('sheet:'+base+'#'+seen[base], (rec.ocorr||'').trim());
+  });
+  let n=0;
+  STATE.registros.forEach(r=>{
+    if(r.origem!=='planilha' || !r.srcKey) return;
+    const desc=map.get(r.srcKey);
+    if(desc && desc!==r.ocorr){ r.ocorr=desc; n++; }
+  });
+  if(n) save();
+  return n;
+}
+
+/* Botão "Atualizar base": rebusca a planilha (insere novos casos via importTreatables) e atualiza as descrições dos já importados. */
+async function refreshFromSheet(){
+  const btn=document.getElementById('btnRefresh');
+  const label=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; btn.innerHTML='Atualizando…'; }
+  const before=STATE.registros.filter(r=>r.origem==='planilha'&&r.srcKey).length;
+  try{
+    await loadSheet();                                   // rebusca planilha + importTreatables (novos casos)
+    const after=STATE.registros.filter(r=>r.origem==='planilha'&&r.srcKey).length;
+    const novos=Math.max(0, after-before);
+    const atualizados=updateImportedDescs();             // backfill das descrições (coluna G)
+    if(SESSION && !isEditing() && !modalOpen()){ fillMonthFilter(); renderAdmin(); renderAll(); }
+    let msg;
+    if(!SHEET) msg='Não consegui acessar a planilha agora. Tente novamente em instantes.';
+    else if(novos && atualizados) msg=novos+' novo(s) caso(s) importado(s) e '+atualizados+' descrição(ões) atualizada(s).';
+    else if(novos) msg=novos+' novo(s) caso(s) importado(s) da planilha.';
+    else if(atualizados) msg=atualizados+' descrição(ões) atualizada(s) pela planilha.';
+    else msg='Base já estava atualizada — nenhum caso novo.';
+    toast(msg);
+  }catch(e){ toast('Falha ao atualizar a base: '+e.message); }
+  finally{ if(btn){ btn.disabled=false; btn.innerHTML=label; } }
 }
 async function loadViaFetch(){
   const res = await fetch(csvUrl(SHEET_NAME_OCORRENCIAS),{cache:'no-store'});
