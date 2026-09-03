@@ -301,6 +301,7 @@ textarea{resize:vertical;min-height:70px}
         <button class="nav-btn" data-tab="dash" onclick="setTab('dash')">Indicadores</button>
         <button class="nav-btn" data-tab="tram" onclick="setTab('tram')">Trâmite</button>
         <button class="nav-btn" data-tab="base" onclick="setTab('base')">Análise da base</button>
+        <button class="nav-btn" data-tab="excl" onclick="setTab('excl')">Excluídos</button>
         <button class="nav-btn hidden" id="navAdmin" data-tab="admin" onclick="setTab('admin')">Administração</button>
       </div>
       <select class="mini-select" id="monthFilter" onchange="setMonth(this.value)" title="Filtrar por mês" style="max-width:150px"><option value="">Todos os meses</option></select>
@@ -387,6 +388,15 @@ textarea{resize:vertical;min-height:70px}
       <div class="kpi-grid" id="kpiBase"></div>
       <div class="card"><div class="card-head"><div><h3 id="baseChartTitle">Detalhamento</h3><div class="sub" id="baseChartSub"></div></div><span class="card-tag">CRUZAMENTO</span></div><div class="chart-wrap tall"><canvas id="chBase"></canvas></div></div>
       <div class="card"><div class="card-head"><div><h3>Dados brutos</h3><div class="sub">Contagem exata</div></div><span class="card-tag">TABELA</span></div><div class="table-wrap"><table class="data" id="baseTable"></table></div></div>
+    </section>
+
+    <!-- EXCLUÍDOS -->
+    <section class="page" data-page="excl">
+      <div class="page-head">
+        <div><div class="eyebrow">Registro</div><h2>Ocorrências excluídas</h2><p>Tudo que foi excluído fica aqui com os dados originais, quem excluiu, quando e o motivo. É possível restaurar.</p></div>
+        <span class="vertente-tag nc">NÃO CONFORMIDADES</span>
+      </div>
+      <div class="card" style="padding:6px 6px 0"><div class="table-wrap"><table class="data" id="exclTable"></table></div><div id="exclEmpty"></div></div>
     </section>
 
     <!-- ADMIN -->
@@ -976,7 +986,7 @@ function fmt(n){ return (n||0).toLocaleString('pt-BR'); }
 const COL = ()=> VERT==='ERRO' ? '#e5484d' : '#2E6BC6';
 const gridColor='rgba(16,35,61,.07)';
 
-function renderAll(){ updateBadges(); if(TAB==='dash')renderDash(); if(TAB==='sem')renderSem(); if(TAB==='tram')renderTram(); if(TAB==='base')renderBase(); }
+function renderAll(){ updateBadges(); if(TAB==='dash')renderDash(); if(TAB==='sem')renderSem(); if(TAB==='tram')renderTram(); if(TAB==='base')renderBase(); if(TAB==='excl')renderExcl(); }
 
 /* ---- PAINEL ---- */
 function renderDash(){
@@ -1135,7 +1145,7 @@ function rowTram(r){
     <td><span class="tag-pill">${esc(r.resp)}</span></td>
     <td>${esc(r.tipo)}${r.sub?`<div class="tag-pill" style="margin-top:3px">${esc(r.sub)}</div>`:''}</td><td>${esc(r.ref)||'—'}</td><td>${custo}</td>
     <td><span class="st-badge ${stClass(r)}">${esc(statusLabel(r))}</span></td>
-    <td><div class="act-row">${acao}${adv}${SESSION.role==='admin'?`<button class="tiny-btn" style="color:var(--red);border-color:#f2cfd0" onclick="openExcluir(${r.id})">Excluir</button>`:''}</div></td>
+    <td><div class="act-row">${acao}${adv}${(SESSION.role==='admin'||VERT==='ERRO')?`<button class="tiny-btn" style="color:var(--red);border-color:#f2cfd0" onclick="openExcluir(${r.id})">Excluir</button>`:''}</div></td>
   </tr>`;
 }
 function acionarBtns(r){
@@ -1212,8 +1222,8 @@ function finishResp(){ save(); closeModal('modalResp'); fillMonthFilter(); rende
 /* ===== Exclusão (admin) — com registro do que era e do motivo ===== */
 let EXCL_ID=null;
 function openExcluir(id){
-  if(SESSION.role!=='admin'){ toast('Apenas o admin pode excluir.'); return; }
   const r=STATE.registros.find(x=>x.id===id); if(!r)return;
+  if(!(SESSION.role==='admin' || r.vert==='ERRO')){ toast('Nesta vertente, apenas o admin pode excluir.'); return; }
   EXCL_ID=id;
   document.getElementById('exclSummary').innerHTML=`<div><b>${esc(r.ocorr||'—')}</b></div><div class="meta">${esc(r.tipo)}${r.sub?(' › '+esc(r.sub)):''} · Placa: ${esc(r.placa)||'-'} · ${fmtData(r.data)} · Resp: <b>${esc(r.resp)}</b> · ${esc(statusLabel(r))}</div>`;
   document.getElementById('exclMotivo').value='';
@@ -1227,7 +1237,34 @@ function doExcluir(){
   pushHist(r,'Excluída (admin)',motivo,'','');
   save(); closeModal('modalExcl'); fillMonthFilter(); renderAdmin(); renderAll(); toast('Ocorrência excluída — fica no log de excluídas.');
 }
-function restaurar(id){ const r=STATE.registros.find(x=>x.id===id); if(!r)return; r.excluido=false; delete r.exclInfo; pushHist(r,'Restaurada (admin)','','',''); save(); renderAdmin(); fillMonthFilter(); renderAll(); toast('Ocorrência restaurada.'); }
+function restaurar(id){ const r=STATE.registros.find(x=>x.id===id); if(!r)return; if(!(SESSION.role==='admin'||r.vert==='ERRO')){ toast('Sem permissão para restaurar nesta vertente.'); return; } r.excluido=false; delete r.exclInfo; pushHist(r,'Restaurada','','',''); save(); if(SESSION.role==='admin')renderAdmin(); fillMonthFilter(); renderAll(); toast('Ocorrência restaurada.'); }
+function renderExcl(){
+  const tb=document.getElementById('exclTable'), emp=document.getElementById('exclEmpty'); if(!tb)return;
+  let list=STATE.registros.filter(r=>r.excluido && r.vert===VERT);
+  if(!(SESSION.role==='admin'||SESSION.nivel==='tudo')) list=list.filter(r=>r.criadoPor===SESSION.name||r.resp===SESSION.name);
+  list.sort((a,b)=>(((b.exclInfo&&b.exclInfo.quando)||'')).localeCompare((a.exclInfo&&a.exclInfo.quando)||''));
+  if(!list.length){ tb.innerHTML=''; emp.innerHTML=emptyBox('Nenhuma ocorrência excluída nesta vertente.'); return; }
+  emp.innerHTML='';
+  const canRestore = SESSION.role==='admin' || VERT==='ERRO';
+  tb.innerHTML=`<thead><tr><th>Data</th><th>Ocorrência</th><th>Placa</th><th>Responsável</th><th>Tipo</th><th>Ref.</th><th>Custo</th><th>Criador</th><th>Situação</th><th>Excluída por</th><th>Quando</th><th>Motivo</th>${canRestore?'<th></th>':''}</tr></thead><tbody>${list.map(r=>{
+    let custo=r.custoTipo==='direto'?('Direto'+(r.custo?(' R$ '+r.custo):'')):r.custoTipo==='indireto'?('Indireto'+(r.custo?(' R$ '+r.custo):'')):(r.custo?('R$ '+r.custo):'Não');
+    return `<tr>
+      <td>${fmtData(r.data)}</td>
+      <td style="max-width:220px"><b>${esc(r.ocorr||'—')}</b>${r.obs?`<div style="color:var(--ink-muted);font-size:11px;margin-top:2px">${esc(r.obs)}</div>`:''}${r.plano?`<div class="plano-box" style="margin-top:4px">📋 ${esc(r.plano)}</div>`:''}</td>
+      <td>${esc(r.placa)||'—'}</td>
+      <td><span class="tag-pill">${esc(r.resp)}</span></td>
+      <td>${esc(r.tipo)}${r.sub?`<div class="tag-pill" style="margin-top:2px">${esc(r.sub)}</div>`:''}</td>
+      <td>${esc(r.ref)||'—'}</td>
+      <td>${custo}</td>
+      <td>${esc(r.criadoPor)}</td>
+      <td>${esc(statusLabel(r))}</td>
+      <td><b>${esc((r.exclInfo&&r.exclInfo.por)||'—')}</b></td>
+      <td>${fmtWhen(r.exclInfo&&r.exclInfo.quando)}</td>
+      <td style="max-width:220px">${esc((r.exclInfo&&r.exclInfo.motivo)||'—')}</td>
+      ${canRestore?`<td><button class="tiny-btn" onclick="restaurar(${r.id})">Restaurar</button></td>`:''}
+    </tr>`;
+  }).join('')}</tbody>`;
+}
 function renderExcluidas(){
   const el=document.getElementById('admExcluidas'); if(!el)return;
   const list=STATE.registros.filter(r=>r.excluido).sort((a,b)=>(((b.exclInfo&&b.exclInfo.quando)||'')).localeCompare((a.exclInfo&&a.exclInfo.quando)||''));
