@@ -305,7 +305,6 @@ textarea{resize:vertical;min-height:70px}
       </div>
       <select class="mini-select" id="monthFilter" onchange="setMonth(this.value)" title="Filtrar por mês" style="max-width:150px"><option value="">Todos os meses</option></select>
       <div class="spacer"></div>
-      <button class="btn-ghost" id="btnRefresh" onclick="refreshFromSheet()" title="Buscar novos casos cadastrados na planilha e atualizar as descrições (coluna G)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="margin-right:4px"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4M20 12a8 8 0 0 1-13.7 5.7L4 16M4 20v-4h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>Atualizar base</button>
       <button class="btn-cta" id="btnNew" onclick="openCadastro()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Nova ocorrência</button>
       <div class="user-chip" id="cloudChip" title="Estado da nuvem"><span class="cdot local"></span> Local</div>
       <div class="user-chip"><span class="user-avatar" id="uav">A</span><span>Setor: <b id="uname">Admin</b></span></div>
@@ -424,7 +423,12 @@ textarea{resize:vertical;min-height:70px}
         </div>
       </div>
       <div class="card" style="margin-top:13px">
-        <div class="card-head"><div><h3>Tipos de ocorrência &amp; sub-grupos</h3><div class="sub">Somente o admin cadastra. Clique num tipo para gerenciar os sub-grupos dele.</div></div></div>
+        <div class="card-head"><div><h3>Responsáveis / setores <span style="color:var(--orange)">(lista)</span></h3><div class="sub">Adicione ou remova os responsáveis usados em todo o sistema (cadastro, semáforo, contatos, grupos).</div></div></div>
+        <div class="chip-list" id="admResps" style="max-height:240px;overflow:auto"></div>
+        <div class="add-inline"><input id="admNewResp2" placeholder="Novo responsável / setor"><button class="btn-cta" onclick="addResp()">Adicionar responsável</button></div>
+      </div>
+      <div class="card" style="margin-top:13px">
+        <div class="card-head"><div><h3>Tipos de ocorrência &amp; sub-grupos — <span id="tiposVertLabel" style="color:var(--orange)">NÃO CONFORMIDADES</span></h3><div class="sub">Editando a vertente selecionada no topo. Troque entre NÃO CONFORMIDADES / ERROS no cabeçalho para gerenciar a outra lista. Clique num tipo para os sub-grupos.</div></div></div>
         <div class="tipos-wrap">
           <div>
             <div class="hint-inline" style="font-weight:700;margin-bottom:6px">Tipos de ocorrência</div>
@@ -489,6 +493,11 @@ textarea{resize:vertical;min-height:70px}
         <div class="field field-req"><label>Setor responsável</label><select id="fResp" onchange="updateSendHint()"></select></div>
         <div class="field field-req"><label>Tipo de ocorrência</label><select id="fTipo" onchange="fillSub()"></select></div>
         <div class="field"><label>Sub-grupo</label><select id="fSub"><option value="">—</option></select><div class="hint-inline" id="subHint"></div></div>
+        <div class="field full" id="addTipoRow" style="display:none">
+          <label>Incluir novo tipo de ocorrência</label>
+          <div class="add-inline"><input id="fNewTipo" placeholder="Digite um tipo que ainda não existe"><button type="button" class="btn-ghost" onclick="addTipoInline()">+ Adicionar tipo</button></div>
+          <div class="hint-inline">Disponível nos Erros Operacionais: você pode incluir um tipo novo (apenas adicionar). Remover só o admin.</div>
+        </div>
         <div class="field full"><label>Referência</label><input id="fRef" placeholder="NF / Minuta / Manifesto / D.I."></div>
         <div class="field full"><label>Gerou custo?</label>
           <div class="radio-row" id="custoChips">
@@ -599,19 +608,25 @@ const TIPOS = [
 function defaultState(){
   return {
     adminPass:'portoex',
+    responsaveis: RESPONSAVEIS.slice(),        // lista editável de responsáveis
     setores:[],            // {resp, pass, nivel, grupo}
     grupos:[],             // {nome, setores:[]}
-    tipos: TIPOS.map(t=>({nome:t, subs:[]})),  // {nome, subs:[]}
+    tiposNC: TIPOS.map(t=>({nome:t, subs:[]})),   // tipos da vertente NÃO CONFORMIDADES
+    tiposERRO: TIPOS.map(t=>({nome:t, subs:[]})), // tipos da vertente ERROS OPERACIONAIS
     contatos:[],           // {resp, nome, tel, email}
     registros:[]           // {id,vert,ocorr,data,dataCad,placa,resp,tipo,sub,ref,obs,custoTipo,custo,informar,criadoPor,status}
   };
 }
 function normalizeState(){
   if(!STATE || typeof STATE!=='object') STATE=defaultState();
+  if(!Array.isArray(STATE.responsaveis)||!STATE.responsaveis.length) STATE.responsaveis=RESPONSAVEIS.slice();
   if(!Array.isArray(STATE.setores)) STATE.setores=[];
   if(!Array.isArray(STATE.grupos)) STATE.grupos=[];
   if(!Array.isArray(STATE.registros)) STATE.registros=[];
-  if(!Array.isArray(STATE.tipos)||!STATE.tipos.length) STATE.tipos=TIPOS.map(t=>({nome:t,subs:[]}));
+  // tipos por vertente (migra do antigo STATE.tipos único, se existir)
+  const legacy = (Array.isArray(STATE.tipos)&&STATE.tipos.length) ? STATE.tipos.map(t=>({nome:t.nome,subs:(t.subs||[]).slice()})) : TIPOS.map(t=>({nome:t,subs:[]}));
+  if(!Array.isArray(STATE.tiposNC)||!STATE.tiposNC.length) STATE.tiposNC = legacy.map(t=>({nome:t.nome,subs:t.subs.slice()}));
+  if(!Array.isArray(STATE.tiposERRO)||!STATE.tiposERRO.length) STATE.tiposERRO = legacy.map(t=>({nome:t.nome,subs:t.subs.slice()}));
   if(!Array.isArray(STATE.contatos)) STATE.contatos=[];
   if(!STATE.adminPass) STATE.adminPass='portoex';
   // migração de status para o ciclo de tratamento
@@ -631,6 +646,8 @@ function save(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); }catch(e){ try{toast('Atenção: o navegador bloqueou o salvamento local.');}catch(_){} }
   if(cloudOn && cloudDoc && !cloudApplying){ cloudDoc.set({state:JSON.stringify(STATE), ts:Date.now()}).catch(()=>{}); }
 }
+function respList(){ return (STATE.responsaveis&&STATE.responsaveis.length)?STATE.responsaveis:RESPONSAVEIS; }
+function tiposFor(v){ v=v||VERT; return (v==='ERRO'?STATE.tiposERRO:STATE.tiposNC)||[]; }
 
 /* ============ NUVEM (FIREBASE / FIRESTORE) ============ */
 const CLOUD_CONFIGURED = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.projectId);
@@ -731,7 +748,7 @@ function importTreatables(){
     const resp=mapResp(rec.resp);
     STATE.registros.push({
       id: Date.now()+(++impSeq), vert:'NC',
-      ocorr:(rec.ocorr||'').trim() || ((rec.tipo||'Ocorrência')+(rec.ref?(' — '+rec.ref):'')),
+      ocorr:(rec.tipo||'Ocorrência')+(rec.ref?(' — '+rec.ref):''),
       data:rec.data, dataCad:new Date().toISOString(),
       placa:rec.placa||'', resp, tipo:rec.tipo||'Não especificado', sub:'',
       ref:rec.ref||'', obs:'Importado da base (planilha).',
@@ -793,8 +810,10 @@ function setVertente(v){
     ? 'Base construída do zero. Analise os erros operacionais por responsável ou por tipo.'
     : 'Estrutura de acesso igual ao projeto original: analise por responsável ou por tipo de ocorrência.';
   fillMonthFilter();
+  admTipoSel=null;
   updateBadges();
   renderAll();
+  if(SESSION && SESSION.role==='admin') renderAdmin();
 }
 function updateBadges(){
   const nc = countVert('NC'), er = countVert('ERRO');
@@ -853,49 +872,6 @@ async function loadSheet(){
   }
   fillMonthFilter(); updateBadges(); renderAll();
 }
-
-/* Atualiza descrições (coluna G) dos casos já importados da planilha, casando pela mesma srcKey usada na importação. */
-function updateImportedDescs(){
-  if(!SHEET) return 0;
-  const map=new Map(), seen={};
-  SHEET.records.forEach(rec=>{
-    if(!isTreat(rec.data)) return;
-    const base=[rec.data,rec.placa,rec.resp,rec.tipo,rec.ref].join('|');
-    seen[base]=(seen[base]||0)+1;
-    map.set('sheet:'+base+'#'+seen[base], (rec.ocorr||'').trim());
-  });
-  let n=0;
-  STATE.registros.forEach(r=>{
-    if(r.origem!=='planilha' || !r.srcKey) return;
-    const desc=map.get(r.srcKey);
-    if(desc && desc!==r.ocorr){ r.ocorr=desc; n++; }
-  });
-  if(n) save();
-  return n;
-}
-
-/* Botão "Atualizar base": rebusca a planilha (insere novos casos via importTreatables) e atualiza as descrições dos já importados. */
-async function refreshFromSheet(){
-  const btn=document.getElementById('btnRefresh');
-  const label=btn?btn.innerHTML:'';
-  if(btn){ btn.disabled=true; btn.innerHTML='Atualizando…'; }
-  const before=STATE.registros.filter(r=>r.origem==='planilha'&&r.srcKey).length;
-  try{
-    await loadSheet();                                   // rebusca planilha + importTreatables (novos casos)
-    const after=STATE.registros.filter(r=>r.origem==='planilha'&&r.srcKey).length;
-    const novos=Math.max(0, after-before);
-    const atualizados=updateImportedDescs();             // backfill das descrições (coluna G)
-    if(SESSION && !isEditing() && !modalOpen()){ fillMonthFilter(); renderAdmin(); renderAll(); }
-    let msg;
-    if(!SHEET) msg='Não consegui acessar a planilha agora. Tente novamente em instantes.';
-    else if(novos && atualizados) msg=novos+' novo(s) caso(s) importado(s) e '+atualizados+' descrição(ões) atualizada(s).';
-    else if(novos) msg=novos+' novo(s) caso(s) importado(s) da planilha.';
-    else if(atualizados) msg=atualizados+' descrição(ões) atualizada(s) pela planilha.';
-    else msg='Base já estava atualizada — nenhum caso novo.';
-    toast(msg);
-  }catch(e){ toast('Falha ao atualizar a base: '+e.message); }
-  finally{ if(btn){ btn.disabled=false; btn.innerHTML=label; } }
-}
 async function loadViaFetch(){
   const res = await fetch(csvUrl(SHEET_NAME_OCORRENCIAS),{cache:'no-store'});
   if(!res.ok) throw new Error('HTTP '+res.status);
@@ -931,7 +907,7 @@ function loadViaJSONP(){
   });
 }
 // Colunas: A=DATA (cabeçalho em branco na planilha), B=PLACA, C=RESPONSÁVEL,
-// D=TIPO, E=REFERÊNCIA, G=OCORRÊNCIA (descrição dos fatos). Não dependemos do cabeçalho: consideramos linha de
+// D=TIPO, E=REFERÊNCIA. Não dependemos do cabeçalho: consideramos linha de
 // dados toda aquela cuja 1ª coluna for uma data DD/MM/AAAA. Assim ignoramos
 // automaticamente o cabeçalho e a tabela dinâmica que fica à direita na aba.
 function buildOcorrencias(rows){
@@ -950,7 +926,7 @@ function buildOcorrencias(rows){
     let y=parseInt(m[3],10); if(m[3].length===2)y+=2000;
     const mo=parseInt(m[2],10); const mk=y+'-'+String(mo).padStart(2,'0');
     byMonth.set(mk,(byMonth.get(mk)||0)+1);
-    records.push({resp,tipo,mes:MES_ABBR[mo-1]+'/'+String(y).slice(2),data,placa:(r[1]||'').trim(),ref:(r[4]||'').trim(),ocorr:(r[6]||'').trim(),y,mo});
+    records.push({resp,tipo,mes:MES_ABBR[mo-1]+'/'+String(y).slice(2),data,placa:(r[1]||'').trim(),ref:(r[4]||'').trim(),y,mo});
   }
   const mk=[...byMonth.keys()].sort();
   return {
@@ -1035,7 +1011,7 @@ function kpi(label,val,foot,cls){ const d=document.createElement('div'); d.class
 /* ---- SEMÁFORO (tela inicial) ---- */
 function setSemScope(s){ semScope=s; document.querySelectorAll('#semScopeSeg button').forEach(b=>b.classList.toggle('active',b.dataset.s===s)); renderSem(); }
 function allRespNames(){
-  const s=new Set(RESPONSAVEIS);
+  const s=new Set(respList());
   STATE.registros.filter(r=>r.vert===VERT&&!r.excluido).forEach(r=>{ if(r.resp)s.add(r.resp); if(r.criadoPor)s.add(r.criadoPor); });
   if(VERT==='NC'&&SHEET) SHEET.respEntries.forEach(e=>s.add(mapResp(e[0])));
   s.delete('Direção');
@@ -1191,7 +1167,7 @@ function openResp(id){
     extra=`<div class="field"><label>Plano de ação ${isResp?'(obrigatório ao aceitar)':''}</label><textarea id="respPlano" placeholder="Descreva o que será feito para sanar o problema…">${esc(r.plano||'')}</textarea><div class="hint-inline">Preenchido pelo responsável apontado como causador.</div></div>`;
   }
   if(isCriador){
-    extra=`<div class="field"><label>Reenviar para o responsável</label><select id="respResp">${RESPONSAVEIS.map(x=>`<option ${x===r.resp?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`;
+    extra=`<div class="field"><label>Reenviar para o responsável</label><select id="respResp">${respList().map(x=>`<option ${x===r.resp?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`;
   }
   document.getElementById('respBody').innerHTML=`
     <div class="resp-summary">
@@ -1315,10 +1291,10 @@ function crossFor(mode,sel){
 /* ============ CADASTRO ============ */
 function fillSelectsOnce(){
   const opt=(a)=>a.map(x=>`<option>${esc(x)}</option>`).join('');
-  document.getElementById('fResp').innerHTML='<option value="" disabled selected>Selecione…</option>'+opt(RESPONSAVEIS);
-  document.getElementById('tramResp').innerHTML='<option value="">Todos os responsáveis</option>'+opt(RESPONSAVEIS);
-  document.getElementById('admNewResp').innerHTML=opt(RESPONSAVEIS);
-  document.getElementById('ctResp').innerHTML=opt(RESPONSAVEIS);
+  document.getElementById('fResp').innerHTML='<option value="" disabled selected>Selecione…</option>'+opt(respList());
+  document.getElementById('tramResp').innerHTML='<option value="">Todos os responsáveis</option>'+opt(respList());
+  document.getElementById('admNewResp').innerHTML=opt(respList());
+  document.getElementById('ctResp').innerHTML=opt(respList());
   fillTipoSelect();
   fillBaseFilter();
 }
@@ -1350,15 +1326,25 @@ function sendTo(ch,resp,tipo,msg){
   }
 }
 function fillTipoSelect(){
-  document.getElementById('fTipo').innerHTML='<option value="" disabled selected>Selecione…</option>'+STATE.tipos.map(t=>`<option>${esc(t.nome)}</option>`).join('');
+  document.getElementById('fTipo').innerHTML='<option value="" disabled selected>Selecione…</option>'+tiposFor().map(t=>`<option>${esc(t.nome)}</option>`).join('');
 }
 function fillSub(){
-  const t=STATE.tipos.find(x=>x.nome===document.getElementById('fTipo').value);
+  const t=tiposFor().find(x=>x.nome===document.getElementById('fTipo').value);
   const subs=(t&&t.subs)?t.subs:[];
   document.getElementById('fSub').innerHTML='<option value="">'+(subs.length?'Selecione o sub-grupo…':'— sem sub-grupos —')+'</option>'+subs.map(s=>`<option>${esc(s)}</option>`).join('');
   document.getElementById('subHint').textContent = (t&&!subs.length)?'Cadastre sub-grupos deste tipo no painel Admin.':'';
 }
 let custoFlag='nenhum';
+function addTipoInline(){
+  const inp=document.getElementById('fNewTipo'); const v=inp.value.trim();
+  if(!v){ toast('Digite o novo tipo.'); return; }
+  const TL=tiposFor();
+  const ex=TL.find(t=>t.nome.toLowerCase()===v.toLowerCase());
+  if(ex){ document.getElementById('fTipo').value=ex.nome; fillSub(); toast('Esse tipo já existe — selecionado.'); inp.value=''; return; }
+  TL.push({nome:v,subs:[]}); save();
+  fillTipoSelect(); document.getElementById('fTipo').value=v; fillSub(); inp.value='';
+  toast('Tipo adicionado.');
+}
 function setCusto(c){ custoFlag=c; document.querySelectorAll('#custoChips .radio-chip').forEach(ch=>ch.classList.toggle('on',ch.dataset.c===c)); const f=document.getElementById('fCusto'); f.style.display=(c==='nenhum')?'none':'block'; if(c==='nenhum')f.value=''; }
 function setInformar(v){ informarFlag=v; document.getElementById('infS').classList.toggle('on',v); document.getElementById('infN').classList.toggle('on',!v); document.getElementById('sendRow').classList.toggle('on',v); }
 function buildMsg(r){ return `Ocorrência PORTOEX (${VERT==='NC'?'Não Conformidade':'Erro Operacional'})\nResponsável: ${r.resp}\nTipo: ${r.tipo}${r.sub?(' › '+r.sub):''}\nPlaca: ${r.placa||'-'}\nRef: ${r.ref||'-'}\nDescrição: ${r.ocorr||'-'}`; }
@@ -1375,6 +1361,8 @@ function openCadastro(){
   fillTipoSelect();
   document.getElementById('fResp').selectedIndex=0; document.getElementById('fTipo').selectedIndex=0;
   fillSub();
+  document.getElementById('addTipoRow').style.display = (VERT==='ERRO')?'block':'none';
+  document.getElementById('fNewTipo').value='';
   setCusto('nenhum');
   setInformar(true);
   updateSendHint();
@@ -1434,28 +1422,51 @@ function renderAdmin(){
     : '<div class="empty" style="padding:18px">Nenhum grupo criado.</div>';
   // tags de setores p/ grupo
   const tg=document.getElementById('admGrupoTags');
-  tg.innerHTML=RESPONSAVEIS.map(r=>`<span class="ptag" data-r="${esc(r)}" onclick="this.classList.toggle('on')">${esc(r)}</span>`).join('');
+  tg.innerHTML=respList().map(r=>`<span class="ptag" data-r="${esc(r)}" onclick="this.classList.toggle('on')">${esc(r)}</span>`).join('');
+  renderResps();
   renderTipos();
   renderContatos();
   renderExcluidas();
   // grupos disponíveis no add setor (via prompt simplificado abaixo)
 }
 function nivelLabel(n){ return n==='tudo'?'tudo':n==='grupo'?'grupo de trabalho':'só o próprio setor'; }
+/* ---- Responsáveis (admin) ---- */
+function renderResps(){
+  const el=document.getElementById('admResps'); if(!el)return;
+  el.innerHTML = respList().map((r,i)=>`<div class="chip-item"><div class="name">${esc(r)}</div><button class="rm" title="Remover" onclick="rmResp(${i})">×</button></div>`).join('') || '<div class="empty" style="padding:14px">Nenhum responsável.</div>';
+}
+function addResp(){
+  const v=document.getElementById('admNewResp2').value.trim();
+  if(!v){ toast('Digite o nome do responsável.'); return; }
+  if(respList().some(x=>x.toLowerCase()===v.toLowerCase())){ toast('Esse responsável já existe.'); return; }
+  STATE.responsaveis.push(v); save();
+  document.getElementById('admNewResp2').value='';
+  fillSelectsOnce(); renderResps(); renderAdmin(); toast('Responsável adicionado.');
+}
+function rmResp(i){
+  const nome=respList()[i];
+  const emUso = STATE.registros.some(r=>!r.excluido && (r.resp===nome||r.pendCom===nome));
+  if(emUso && !confirm('O responsável "'+nome+'" tem ocorrências ativas. As já existentes continuam com esse nome; ele só deixa de aparecer para novos cadastros. Remover mesmo assim?')) return;
+  STATE.responsaveis.splice(i,1); save();
+  fillSelectsOnce(); renderResps(); renderAdmin(); toast('Responsável removido.');
+}
 /* ---- Tipos & sub-grupos (admin) ---- */
 let admTipoSel=null;
 function renderTipos(){
   const lt=document.getElementById('admTipos'); if(!lt)return;
-  lt.innerHTML = STATE.tipos.length ? STATE.tipos.map((t,i)=>`<div class="chip-item ${admTipoSel===t.nome?'sel':''}" style="cursor:pointer" onclick="selTipo('${enc(t.nome)}')"><div><div class="name">${esc(t.nome)}</div><div class="meta">${t.subs.length} sub-grupo(s)</div></div><button class="rm" title="Remover" onclick="event.stopPropagation();rmTipo(${i})">×</button></div>`).join('') : '<div class="empty" style="padding:14px">Nenhum tipo cadastrado.</div>';
+  const TL=tiposFor();
+  const vlabel=document.getElementById('tiposVertLabel'); if(vlabel) vlabel.textContent = VERT==='ERRO'?'ERROS OPERACIONAIS':'NÃO CONFORMIDADES';
+  lt.innerHTML = TL.length ? TL.map((t,i)=>`<div class="chip-item ${admTipoSel===t.nome?'sel':''}" style="cursor:pointer" onclick="selTipo('${enc(t.nome)}')"><div><div class="name">${esc(t.nome)}</div><div class="meta">${t.subs.length} sub-grupo(s)</div></div><button class="rm" title="Remover" onclick="event.stopPropagation();rmTipo(${i})">×</button></div>`).join('') : '<div class="empty" style="padding:14px">Nenhum tipo cadastrado.</div>';
   const ls=document.getElementById('admSubs');
-  const t=STATE.tipos.find(x=>x.nome===admTipoSel);
+  const t=TL.find(x=>x.nome===admTipoSel);
   document.getElementById('subOfLabel').textContent = t? t.nome : '— selecione um tipo —';
   ls.innerHTML = t ? (t.subs.length ? t.subs.map((s,i)=>`<div class="chip-item"><div class="name">${esc(s)}</div><button class="rm" onclick="rmSub(${i})">×</button></div>`).join('') : '<div class="empty" style="padding:14px">Sem sub-grupos. Adicione abaixo.</div>') : '<div class="empty" style="padding:14px">Clique num tipo à esquerda para ver/adicionar sub-grupos.</div>';
 }
 function selTipo(n){ admTipoSel=n; renderTipos(); }
-function addTipo(){ const v=document.getElementById('admNewTipo').value.trim(); if(!v){toast('Digite o tipo.');return;} if(STATE.tipos.some(t=>t.nome.toLowerCase()===v.toLowerCase())){toast('Esse tipo já existe.');return;} STATE.tipos.push({nome:v,subs:[]}); admTipoSel=v; save(); document.getElementById('admNewTipo').value=''; renderTipos(); toast('Tipo adicionado.'); }
-function rmTipo(i){ const t=STATE.tipos[i]; if(!t)return; if(admTipoSel===t.nome)admTipoSel=null; STATE.tipos.splice(i,1); save(); renderTipos(); toast('Tipo removido.'); }
-function addSub(){ const t=STATE.tipos.find(x=>x.nome===admTipoSel); if(!t){toast('Selecione um tipo primeiro.');return;} const v=document.getElementById('admNewSub').value.trim(); if(!v){toast('Digite o sub-grupo.');return;} if(t.subs.includes(v)){toast('Sub-grupo já existe.');return;} t.subs.push(v); save(); document.getElementById('admNewSub').value=''; renderTipos(); toast('Sub-grupo adicionado.'); }
-function rmSub(i){ const t=STATE.tipos.find(x=>x.nome===admTipoSel); if(!t)return; t.subs.splice(i,1); save(); renderTipos(); }
+function addTipo(){ const TL=tiposFor(); const v=document.getElementById('admNewTipo').value.trim(); if(!v){toast('Digite o tipo.');return;} if(TL.some(t=>t.nome.toLowerCase()===v.toLowerCase())){toast('Esse tipo já existe.');return;} TL.push({nome:v,subs:[]}); admTipoSel=v; save(); document.getElementById('admNewTipo').value=''; renderTipos(); toast('Tipo adicionado.'); }
+function rmTipo(i){ const TL=tiposFor(); const t=TL[i]; if(!t)return; if(admTipoSel===t.nome)admTipoSel=null; TL.splice(i,1); save(); renderTipos(); toast('Tipo removido.'); }
+function addSub(){ const t=tiposFor().find(x=>x.nome===admTipoSel); if(!t){toast('Selecione um tipo primeiro.');return;} const v=document.getElementById('admNewSub').value.trim(); if(!v){toast('Digite o sub-grupo.');return;} if(t.subs.includes(v)){toast('Sub-grupo já existe.');return;} t.subs.push(v); save(); document.getElementById('admNewSub').value=''; renderTipos(); toast('Sub-grupo adicionado.'); }
+function rmSub(i){ const t=tiposFor().find(x=>x.nome===admTipoSel); if(!t)return; t.subs.splice(i,1); save(); renderTipos(); }
 /* ---- Contatos (admin) ---- */
 function renderContatos(){
   const el=document.getElementById('admContatos'); if(!el)return;
