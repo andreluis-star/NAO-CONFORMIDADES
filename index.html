@@ -48,6 +48,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 .btn-primary{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--orange));color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 8px 20px -8px rgba(245,130,31,.5)}
 .btn-primary:hover{filter:brightness(1.07)}
 .login-hint{font-size:11.5px;color:var(--ink-muted);margin-top:16px;line-height:1.6}
+.remember{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-dim);cursor:pointer;margin:12px 2px 2px;text-align:left;user-select:none}
+.remember input{width:16px;height:16px;accent-color:var(--orange);cursor:pointer}
 .login-err{color:var(--red);font-size:12.5px;margin-top:10px;min-height:16px;font-weight:600}
 .motto{font-size:12px;color:var(--blue);font-weight:600;font-style:italic;margin-top:18px}
 
@@ -273,6 +275,7 @@ textarea{resize:vertical;min-height:70px}
       <label>Senha de acesso</label>
       <input type="password" id="loginPass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
+    <label class="remember"><input type="checkbox" id="rememberChk"> Lembrar senha neste dispositivo</label>
     <button class="btn-primary" id="loginBtn" onclick="doLogin()">Entrar</button>
     <div class="login-err" id="loginErr"></div>
     <div class="login-cloud" id="loginCloud"></div>
@@ -568,6 +571,7 @@ textarea{resize:vertical;min-height:70px}
    Protótipo local (localStorage) · NC lê planilha ao vivo
    ============================================================ */
 const STORE_KEY = 'portoex_nc_v1';
+const REMEMBER_KEY = 'portoex_nc_remember';
 const MES_ABBR = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
 /* ============================================================
@@ -780,12 +784,14 @@ function doLogin(){
   const err = document.getElementById('loginErr');
   if(CLOUD_CONFIGURED && !cloudReady){ err.textContent='Aguarde a conexão com a nuvem…'; return; }
   if(!p){ err.textContent='Digite a senha.'; return; }
-  if(p===STATE.adminPass){ SESSION={role:'admin',name:'Admin',nivel:'tudo',grupo:null}; enterApp(); return; }
+  if(p===STATE.adminPass){ rememberHandle(p); SESSION={role:'admin',name:'Admin',nivel:'tudo',grupo:null}; enterApp(); return; }
   const s = STATE.setores.find(x=>x.pass===p);
-  if(s){ SESSION={role:'setor',name:s.resp,nivel:s.nivel,grupo:s.grupo}; enterApp(); return; }
+  if(s){ rememberHandle(p); SESSION={role:'setor',name:s.resp,nivel:s.nivel,grupo:s.grupo}; enterApp(); return; }
   err.textContent='Senha não reconhecida.';
 }
-function logout(){ SESSION=null; document.getElementById('app').classList.remove('on'); document.getElementById('login').style.display='grid'; document.getElementById('loginPass').value=''; document.getElementById('loginErr').textContent=''; }
+function logout(){ SESSION=null; document.getElementById('app').classList.remove('on'); document.getElementById('login').style.display='grid'; document.getElementById('loginPass').value=''; document.getElementById('loginErr').textContent=''; applyRemember(); }
+function rememberHandle(p){ try{ if(document.getElementById('rememberChk').checked) localStorage.setItem(REMEMBER_KEY,p); else localStorage.removeItem(REMEMBER_KEY); }catch(e){} }
+function applyRemember(){ try{ const p=localStorage.getItem(REMEMBER_KEY); const chk=document.getElementById('rememberChk'); if(p){ document.getElementById('loginPass').value=p; if(chk)chk.checked=true; } else if(chk){ chk.checked=false; } }catch(e){} }
 
 function enterApp(){
   document.getElementById('login').style.display='none';
@@ -1575,6 +1581,7 @@ let toastTO;
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastTO); toastTO=setTimeout(()=>t.classList.remove('on'),2600); }
 
 window.addEventListener('resize',()=>{ if(SESSION) renderAll(); });
+applyRemember();
 initCloud();
 </script>
 </body>
