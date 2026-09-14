@@ -133,6 +133,22 @@ main{max-width:1480px;margin:0 auto;padding:22px 26px 70px}
 .chart-wrap{position:relative;height:300px}
 .chart-wrap.tall{height:340px}
 .empty{padding:40px 20px;text-align:center;color:var(--ink-muted);font-size:13.5px}
+.temas-head{font-size:15px;font-weight:800;color:var(--navy);margin:6px 0 11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.temas-head .tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--orange);font-weight:700;letter-spacing:.02em}
+.tema-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tema{display:flex;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.tema .rk{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-weight:800;font-family:'JetBrains Mono',monospace;font-size:13px}
+.tema .tb{flex:1;min-width:0}
+.tema .tt{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.tema .tt h4{font-size:14.5px;font-weight:800;color:var(--navy-2)}
+.tema .tt .v{font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--orange);font-size:13.5px;white-space:nowrap}
+.tema .subs{font-size:12.5px;color:var(--ink-dim);margin-top:5px;line-height:1.5}
+.tail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+.tail-row{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border);font-size:13px}
+.tail-row .ti{font-family:'JetBrains Mono',monospace;color:var(--ink-muted);font-size:11px;width:22px;flex-shrink:0}
+.tail-row .tn{flex:1;min-width:0}
+.tail-row .tv{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--navy)}
+@media(max-width:760px){.tema-grid,.tail-grid{grid-template-columns:1fr}}
 .empty svg{width:40px;height:40px;opacity:.4;margin-bottom:10px}
 
 /* ===== Semáforo cards ===== */
@@ -378,19 +394,23 @@ textarea{resize:vertical;min-height:70px}
     <!-- ANÁLISE DA BASE -->
     <section class="page" data-page="base">
       <div class="page-head">
-        <div><div class="eyebrow" id="baseEye">Base viva</div><h2>Análise da base</h2><p id="baseDesc">Estrutura de acesso igual ao projeto original: analise por responsável ou por tipo de ocorrência.</p></div>
+        <div><div class="eyebrow" id="baseEye">Base viva</div><h2>Análise da base</h2><p id="baseDesc">Analise as ocorrências agrupadas por <b>temas</b> (com a cauda longa), por responsável ou por tipo.</p></div>
         <span class="vertente-tag nc" id="baseVtag">NÃO CONFORMIDADES</span>
       </div>
       <div class="toolbar">
         <div class="seg" id="baseModeSeg">
-          <button class="active" data-m="resp" onclick="setBaseMode('resp')">Por responsável</button>
+          <button class="active" data-m="temas" onclick="setBaseMode('temas')">Por temas</button>
+          <button data-m="resp" onclick="setBaseMode('resp')">Por responsável</button>
           <button data-m="tipo" onclick="setBaseMode('tipo')">Por tipo de ocorrência</button>
         </div>
         <select class="mini-select" id="baseFilter" onchange="renderBase()"></select>
       </div>
       <div class="kpi-grid" id="kpiBase"></div>
-      <div class="card"><div class="card-head"><div><h3 id="baseChartTitle">Detalhamento</h3><div class="sub" id="baseChartSub"></div></div><span class="card-tag">CRUZAMENTO</span></div><div class="chart-wrap tall"><canvas id="chBase"></canvas></div></div>
-      <div class="card"><div class="card-head"><div><h3>Dados brutos</h3><div class="sub">Contagem exata</div></div><span class="card-tag">TABELA</span></div><div class="table-wrap"><table class="data" id="baseTable"></table></div></div>
+      <div id="baseClassic">
+        <div class="card"><div class="card-head"><div><h3 id="baseChartTitle">Detalhamento</h3><div class="sub" id="baseChartSub"></div></div><span class="card-tag">CRUZAMENTO</span></div><div class="chart-wrap tall"><canvas id="chBase"></canvas></div></div>
+        <div class="card"><div class="card-head"><div><h3>Dados brutos</h3><div class="sub">Contagem exata</div></div><span class="card-tag">TABELA</span></div><div class="table-wrap"><table class="data" id="baseTable"></table></div></div>
+      </div>
+      <div id="temasWrap"></div>
     </section>
 
     <!-- EXCLUÍDOS -->
@@ -618,6 +638,21 @@ const TIPOS = [
   'Documentação não colocada no veículo','Ineficiência cliente'
 ];
 
+/* ============ TEMAS (agrupamento de análise) ============ */
+function normTipo(s){ return (s==null?'':String(s)).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+const THEMES = [
+  {nome:'Erros de Carregamento e Conferência', tipos:['Erro de carregamento','Erro de conferência','Não coube no veículo','Não carregada no veículo']},
+  {nome:'Reprogramação e Agendamento', tipos:['Reprogramado','Recusada por falta de agendamento']},
+  {nome:'Entregas Não Realizadas', tipos:['Entrega recusada','Cliente ausente','Não entregue']},
+  {nome:'Coleta Não Realizada', tipos:['Não coletada','Endereço de coleta incorreto','Endereço de coleta errado']},
+  {nome:'Localização e Extravio de Carga', tipos:['Não localizada na base','Não localizado na base','Extravio parcial']},
+  {nome:'Armazém e Tempo de Espera', tipos:['Armazém não liberou carga','Armazem nao liberou','Não liberada pelo armazém','Hora parada']},
+  {nome:'Erros de Expedição', tipos:['Troca de mercadorias','Endereço de entrega incorreto']},
+  {nome:'Erro de Programação do Gestor da Conta', tipos:['Erro de programação do Gestor da Conta']},
+  {nome:'Avarias e Problemas com Veículo', tipos:['Avarias','Avaria','Veículo quebrou','Veículo não descarregado']},
+  {nome:'Falha de Comunicação', tipos:['Falha de comunicação']}
+];
+
 /* ============ ESTADO / PERSISTÊNCIA ============ */
 function defaultState(){
   return {
@@ -713,7 +748,7 @@ let SESSION = null; // {role:'admin'|'setor', name, nivel, grupo}
 let VERT = 'NC';
 let TAB = 'sem';
 let SHEET = null;   // dados da planilha (buildOcorrencias)
-let tramFilter='all', baseMode='resp', informarFlag=true;
+let tramFilter='all', baseMode='temas', informarFlag=true;
 let MONTHF='';      // filtro de mês global ('' = todos, ou 'YYYY-MM')
 let semScope='meu'; // escopo do semáforo: 'meu' | 'todos'
 
@@ -823,8 +858,8 @@ function setVertente(v){
   document.getElementById('dashEye').textContent = isErro?'Erros Operacionais Internos':'Não Conformidades';
   document.getElementById('baseEye').textContent = isErro?'Base local':'Base viva';
   document.getElementById('baseDesc').textContent = isErro
-    ? 'Base construída do zero. Analise os erros operacionais por responsável ou por tipo.'
-    : 'Estrutura de acesso igual ao projeto original: analise por responsável ou por tipo de ocorrência.';
+    ? 'Base construída do zero. Analise por temas, por responsável ou por tipo.'
+    : 'Analise as ocorrências agrupadas por temas (com a cauda longa), por responsável ou por tipo.';
   fillMonthFilter();
   admTipoSel=null;
   updateBadges();
@@ -1287,7 +1322,12 @@ function fillBaseFilter(){
 }
 function renderBase(){
   const d=dataForVert();
+  const isTemas = baseMode==='temas';
+  document.getElementById('baseClassic').classList.toggle('hidden', isTemas);
+  document.getElementById('temasWrap').classList.toggle('hidden', !isTemas);
+  document.getElementById('baseFilter').classList.toggle('hidden', isTemas);
   const grid=document.getElementById('kpiBase'); grid.innerHTML='';
+  if(isTemas){ renderTemas(d); return; }
   const sel=document.getElementById('baseFilter').value;
   const primary = baseMode==='resp'? d.respEntries : d.tipoEntries;
   grid.appendChild(kpi('Total no recorte',fmt(d.total),VERT==='NC'?'base viva + cadastros':'cadastros locais','navy'));
@@ -1311,6 +1351,42 @@ function renderBase(){
   tb.innerHTML=`<thead><tr><th>${sel?(baseMode==='resp'?'Tipo':'Responsável'):(baseMode==='resp'?'Responsável':'Tipo')}</th><th>Ocorrências</th><th>%</th></tr></thead><tbody>${
     entries.map(e=>`<tr><td>${esc(e[0])}</td><td>${fmt(e[1])}</td><td>${d.total?Math.round(e[1]/entries.reduce((a,b)=>a+b[1],0)*100):0}%</td></tr>`).join('')
   }</tbody>`;
+}
+function renderTemas(d){
+  const grid=document.getElementById('kpiBase');
+  const total=d.total||0;
+  const n2t={}; THEMES.forEach((t,i)=>t.tipos.forEach(x=>{n2t[normTipo(x)]=i;}));
+  const stats=THEMES.map(t=>({nome:t.nome,total:0,subs:[],single:t.tipos.length===1}));
+  const tail=[];
+  d.tipoEntries.forEach(([tipo,c])=>{
+    const idx=n2t[normTipo(tipo)];
+    if(idx!=null){ stats[idx].total+=c; stats[idx].subs.push([tipo,c]); }
+    else tail.push([tipo,c]);
+  });
+  const active=stats.filter(s=>s.total>0).sort((a,b)=>b.total-a.total);
+  active.forEach(s=>s.subs.sort((a,b)=>b[1]-a[1]));
+  tail.sort((a,b)=>b[1]-a[1]);
+  const covered=active.reduce((a,b)=>a+b.total,0), tailTotal=tail.reduce((a,b)=>a+b[1],0);
+  const pc=v=>total?((v/total*100).toFixed(1).replace('.',',')+'%'):'0%';
+  grid.innerHTML='';
+  grid.appendChild(kpi('Total no recorte',fmt(total),VERT==='NC'?'base viva + cadastros':'cadastros locais','navy'));
+  grid.appendChild(kpi('Coberto pelos temas',total?Math.round(covered/total*100)+'%':'0%',fmt(covered)+' ocorrências','orange'));
+  grid.appendChild(kpi('Temas ativos',fmt(active.length),'agrupamentos','navy'));
+  grid.appendChild(kpi('Cauda longa',fmt(tail.length),fmt(tailTotal)+' ('+(total?Math.round(tailTotal/total*100):0)+'%)','yellow'));
+  const w=document.getElementById('temasWrap');
+  if(!active.length && !tail.length){ w.innerHTML=emptyBox('Sem dados neste recorte.'); return; }
+  let html=`<div class="temas-head">Temas principais <span class="tag">${active.length} temas · ${pc(covered)} do total</span></div><div class="tema-grid">`;
+  html+=active.map((s,i)=>{
+    const subtxt = s.single ? 'Motivo único — sem submotivos' : s.subs.map(x=>`${esc(x[0])} (${x[1]})`).join(' • ');
+    return `<div class="tema"><div class="rk">${i+1}</div><div class="tb"><div class="tt"><h4>${esc(s.nome)}</h4><span class="v">${s.total} (${pc(s.total)})</span></div><div class="subs">${subtxt}</div></div></div>`;
+  }).join('');
+  html+=`</div>`;
+  if(tail.length){
+    html+=`<div class="temas-head" style="margin-top:22px">Demais motivos — cauda longa <span class="tag">${tail.length} categorias · ${pc(tailTotal)}</span></div><div class="tail-grid">`;
+    html+=tail.map((e,i)=>`<div class="tail-row"><span class="ti">${i+1}</span><span class="tn">${esc(e[0])}</span><span class="tv">${e[1]}</span></div>`).join('');
+    html+=`</div>`;
+  }
+  w.innerHTML=html;
 }
 function crossFor(mode,sel){
   // usa SHEET.cross (NC) + registros locais
