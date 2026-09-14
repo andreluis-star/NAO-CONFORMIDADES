@@ -1445,7 +1445,15 @@ function sendTo(ch,resp,tipo,msg){
   }
 }
 function fillTipoSelect(){
-  document.getElementById('fTipo').innerHTML='<option value="" disabled selected>Selecione…</option>'+tiposFor().map(t=>`<option>${esc(t.nome)}</option>`).join('');
+  const list=tiposFor();
+  const n2t={}; THEMES.forEach((t,i)=>t.tipos.forEach(x=>{n2t[normTipo(x)]=i;}));
+  const groups=THEMES.map(t=>({label:t.nome,items:[]}));
+  const outros={label:'Demais motivos',items:[]};
+  list.forEach(t=>{ const idx=n2t[normTipo(t.nome)]; (idx!=null?groups[idx]:outros).items.push(t.nome); });
+  let html='<option value="" disabled selected>Selecione…</option>';
+  groups.forEach(g=>{ if(g.items.length) html+=`<optgroup label="${esc(g.label)}">`+g.items.map(n=>`<option>${esc(n)}</option>`).join('')+'</optgroup>'; });
+  if(outros.items.length) html+=`<optgroup label="${esc(outros.label)}">`+outros.items.map(n=>`<option>${esc(n)}</option>`).join('')+'</optgroup>';
+  document.getElementById('fTipo').innerHTML=html;
 }
 function fillSub(){
   const t=tiposFor().find(x=>x.nome===document.getElementById('fTipo').value);
