@@ -642,17 +642,52 @@ const TIPOS = [
 /* ============ TEMAS (agrupamento de análise) ============ */
 function normTipo(s){ return (s==null?'':String(s)).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
 const THEMES = [
-  {nome:'Erros de Carregamento e Conferência', tipos:['Erro de carregamento','Erro de conferência','Não coube no veículo','Não carregada no veículo']},
-  {nome:'Reprogramação e Agendamento', tipos:['Reprogramado','Recusada por falta de agendamento']},
-  {nome:'Entregas Não Realizadas', tipos:['Entrega recusada','Cliente ausente','Não entregue']},
-  {nome:'Coleta Não Realizada', tipos:['Não coletada','Endereço de coleta incorreto','Endereço de coleta errado']},
-  {nome:'Localização e Extravio de Carga', tipos:['Não localizada na base','Não localizado na base','Extravio parcial']},
-  {nome:'Armazém e Tempo de Espera', tipos:['Armazém não liberou carga','Armazem nao liberou','Não liberada pelo armazém','Hora parada']},
-  {nome:'Erros de Expedição', tipos:['Troca de mercadorias','Endereço de entrega incorreto']},
-  {nome:'Erro de Programação do Gestor da Conta', tipos:['Erro de programação do Gestor da Conta']},
-  {nome:'Avarias e Problemas com Veículo', tipos:['Avarias','Avaria','Veículo quebrou','Veículo não descarregado']},
-  {nome:'Falha de Comunicação', tipos:['Falha de comunicação']}
+  {nome:'CARREGAMENTO E CONFERÊNCIA', tipos:[
+    'Erro de conferência','Não coube no veículo','Não localizado na base','Não localizada na base',
+    'Atraso no embarque','Ordem de carregamento não respeitada','Carga enviada para o destino incorreto'
+  ]},
+  {nome:'ENTREGA E COLETA', tipos:[
+    'Operação cancelada','Alinhamento de entrega','No-show de agendamento','No show de agendamento',
+    'Falha no acompanhamento de entrega','Reprogramado','Recusada por falta de agendamento',
+    'Entrega não realizada','Entrega recusada','Cliente ausente','Não entregue','Não coletada',
+    'Endereço de coleta errado','Endereço de coleta incorreto',
+    'Erro de programação gestor da conta','Erro de programação do Gestor da Conta',
+    'Não chegou da transferência a tempo','Já coletada anteriormente',
+    'Entrega não realizada na data de agendamento','Demora na liberação da coleta','Demora na liberação de coleta','Atraso de senha'
+  ]},
+  {nome:'ADMINISTRATIVOS', tipos:[
+    'Erros de emissão do CT-E','Erro de emissão do CT-e','Documentação errada','Sem emissão',
+    'Carga seguiu sem manifesto','Documentação não colocada no veículo','Erro de cotação'
+  ]}
 ];
+/* Lista canônica de tipos (o que aparece no cadastro/admin) — na ordem dos 3 grupos */
+const TIPOS_NOVOS = [
+  // CARREGAMENTO E CONFERÊNCIA
+  'Erro de conferência','Não coube no veículo','Não localizado na base','Atraso no embarque',
+  'Ordem de carregamento não respeitada','Carga enviada para o destino incorreto',
+  // ENTREGA E COLETA
+  'Operação cancelada','Alinhamento de entrega','No-show de agendamento','Falha no acompanhamento de entrega',
+  'Reprogramado','Recusada por falta de agendamento','Entrega não realizada','Entrega recusada',
+  'Cliente ausente','Não entregue','Não coletada','Endereço de coleta errado','Erro de programação gestor da conta',
+  'Não chegou da transferência a tempo','Já coletada anteriormente','Entrega não realizada na data de agendamento',
+  'Demora na liberação da coleta','Atraso de senha',
+  // ADMINISTRATIVOS
+  'Erros de emissão do CT-E','Documentação errada','Sem emissão','Carga seguiu sem manifesto',
+  'Documentação não colocada no veículo','Erro de cotação'
+];
+/* Mapa de nomes antigos/variações -> nome canônico novo (para adequar cadastros já feitos) */
+const CANON = {};
+TIPOS_NOVOS.forEach(t=>{ CANON[normTipo(t)]=t; });
+[
+  ['Não localizada na base','Não localizado na base'],
+  ['No show de agendamento','No-show de agendamento'],
+  ['Endereço de coleta incorreto','Endereço de coleta errado'],
+  ['Erro de programação do Gestor da Conta','Erro de programação gestor da conta'],
+  ['Erro de emissão do CT-e','Erros de emissão do CT-E'],
+  ['Erro de emissão do cte','Erros de emissão do CT-E'],
+  ['Demora na liberação de coleta','Demora na liberação da coleta']
+].forEach(([v,c])=>{ CANON[normTipo(v)]=c; });
+function canonTipo(name){ return CANON[normTipo(name)] || name; }
 
 /* ============ ESTADO / PERSISTÊNCIA ============ */
 function defaultState(){
@@ -661,12 +696,14 @@ function defaultState(){
     responsaveis: RESPONSAVEIS.slice(),        // lista editável de responsáveis
     setores:[],            // {resp, pass, nivel, grupo}
     grupos:[],             // {nome, setores:[]}
-    tiposNC: TIPOS.map(t=>({nome:t, subs:[]})),   // tipos da vertente NÃO CONFORMIDADES
-    tiposERRO: TIPOS.map(t=>({nome:t, subs:[]})), // tipos da vertente ERROS OPERACIONAIS
+    tiposNC: TIPOS_NOVOS.map(t=>({nome:t, subs:[]})),   // tipos da vertente NÃO CONFORMIDADES
+    tiposERRO: TIPOS_NOVOS.map(t=>({nome:t, subs:[]})), // tipos da vertente ERROS OPERACIONAIS
     contatos:[],           // {resp, nome, tel, email}
     registros:[]           // {id,vert,ocorr,data,dataCad,placa,resp,tipo,sub,ref,obs,custoTipo,custo,informar,criadoPor,status}
   };
 }
+let pendingSave=false;
+function flushPending(){ if(pendingSave){ pendingSave=false; try{ save(); }catch(e){} } }
 function normalizeState(){
   if(!STATE || typeof STATE!=='object') STATE=defaultState();
   if(!Array.isArray(STATE.responsaveis)||!STATE.responsaveis.length) STATE.responsaveis=RESPONSAVEIS.slice();
@@ -674,11 +711,23 @@ function normalizeState(){
   if(!Array.isArray(STATE.grupos)) STATE.grupos=[];
   if(!Array.isArray(STATE.registros)) STATE.registros=[];
   // tipos por vertente (migra do antigo STATE.tipos único, se existir)
-  const legacy = (Array.isArray(STATE.tipos)&&STATE.tipos.length) ? STATE.tipos.map(t=>({nome:t.nome,subs:(t.subs||[]).slice()})) : TIPOS.map(t=>({nome:t,subs:[]}));
+  const legacy = (Array.isArray(STATE.tipos)&&STATE.tipos.length) ? STATE.tipos.map(t=>({nome:t.nome,subs:(t.subs||[]).slice()})) : TIPOS_NOVOS.map(t=>({nome:t,subs:[]}));
   if(!Array.isArray(STATE.tiposNC)||!STATE.tiposNC.length) STATE.tiposNC = legacy.map(t=>({nome:t.nome,subs:t.subs.slice()}));
   if(!Array.isArray(STATE.tiposERRO)||!STATE.tiposERRO.length) STATE.tiposERRO = legacy.map(t=>({nome:t.nome,subs:t.subs.slice()}));
   if(!Array.isArray(STATE.contatos)) STATE.contatos=[];
   if(!STATE.adminPass) STATE.adminPass='portoex';
+  // === Reconfiguração de categorias (3 grupos) — roda uma vez ===
+  if(STATE.catsVersion!=='cats-2026-09-v1'){
+    const rebuild=(list)=>{ const old=Array.isArray(list)?list:[]; return TIPOS_NOVOS.map(nome=>{
+      const m=old.find(o=>canonTipo(o.nome)===nome && o.subs && o.subs.length);
+      return {nome, subs: m?m.subs.slice():[]};
+    }); };
+    STATE.tiposNC=rebuild(STATE.tiposNC);
+    STATE.tiposERRO=rebuild(STATE.tiposERRO);
+    STATE.registros.forEach(r=>{ if(r.tipo) r.tipo=canonTipo(r.tipo); });
+    STATE.catsVersion='cats-2026-09-v1';
+    pendingSave=true;
+  }
   // migração de status para o ciclo de tratamento
   STATE.registros.forEach(r=>{
     if(!Array.isArray(r.hist)) r.hist=[];
@@ -691,6 +740,7 @@ function normalizeState(){
 }
 let STATE = load();
 normalizeState();
+flushPending();
 function load(){ try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)); return (s&&s.registros)?s:defaultState(); }catch(e){ return defaultState(); } }
 function save(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); }catch(e){ try{toast('Atenção: o navegador bloqueou o salvamento local.');}catch(_){} }
@@ -735,6 +785,7 @@ function initCloud(){
             if(SESSION && !isEditing() && !modalOpen()){ renderAdmin(); renderAll(); }
           }catch(e){}
           finally{ cloudApplying=false; }
+          flushPending();
           if(SHEET){ const n=importTreatables(); if(n && SESSION && !isEditing() && !modalOpen()){ renderAdmin(); renderAll(); } }
         }
       } else {
