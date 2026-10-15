@@ -270,6 +270,23 @@ textarea{resize:vertical;min-height:70px}
 .login-cloud{font-size:12px;color:var(--ink-dim);margin-top:12px;min-height:16px;font-weight:600}
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;z-index:300;opacity:0;transition:all .3s;box-shadow:0 12px 30px -8px rgba(0,0,0,.5)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== Dash Expedição / Log. Interna ===== */
+.exp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:13px;margin-bottom:18px}
+.exp-kpis .kpi-value{font-size:26px}
+.row.cols-3{grid-template-columns:1fr 1fr 1fr}
+.exp-note{background:var(--blue-100);color:var(--navy);border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:14px}
+.exp-bar{height:7px;border-radius:4px;background:#eef2f8;overflow:hidden;min-width:70px}
+.exp-bar i{display:block;height:100%;background:var(--green)}
+.quem-tag{display:inline-block;background:#fff4e6;color:#9a4d00;border:1px solid #ffd9ab;border-radius:20px;padding:2px 9px;font-size:11.5px;font-weight:700;margin:1px 3px 1px 0;white-space:nowrap}
+.quem-none{color:var(--ink-muted);font-size:11.5px;font-style:italic}
+.edit-q{border:none;background:none;cursor:pointer;color:var(--blue);font-size:12px;padding:0 3px}
+.age-hot{color:var(--red);font-weight:800}
+[data-page="exp"] .row>*{min-width:0}
+[data-page="exp"] .card-head{flex-wrap:wrap}
+[data-page="exp"] .table-wrap{overflow-x:auto}
+#expSearch{width:100%}
+@media(max-width:980px){.row.cols-3{grid-template-columns:1fr}}
 @media(max-width:820px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.row.cols-2{grid-template-columns:1fr}.adm-grid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.split-txt .s{display:none}}
 </style>
 </head>
@@ -323,6 +340,7 @@ textarea{resize:vertical;min-height:70px}
         <button class="nav-btn" data-tab="tram" onclick="setTab('tram')">Trâmite</button>
         <button class="nav-btn" data-tab="base" onclick="setTab('base')">Análise da base</button>
         <button class="nav-btn" data-tab="excl" onclick="setTab('excl')">Excluídos</button>
+        <button class="nav-btn hidden" id="navExp" data-tab="exp" onclick="setTab('exp')">Dash Expedição</button>
         <button class="nav-btn hidden" id="navAdmin" data-tab="admin" onclick="setTab('admin')">Administração</button>
       </div>
       <select class="mini-select" id="monthFilter" onchange="setMonth(this.value)" title="Filtrar por mês" style="max-width:150px"><option value="">Todos os meses</option></select>
@@ -416,6 +434,44 @@ textarea{resize:vertical;min-height:70px}
     </section>
 
     <!-- EXCLUÍDOS -->
+    <!-- DASH EXPEDIÇÃO / LOG. INTERNA (aba interna) -->
+    <section class="page" data-page="exp">
+      <div class="page-head">
+        <div><div class="eyebrow">Aba interna · Expedição / Log. Interna</div><h2>Dash geral de tratamentos</h2><p>Tudo o que caiu para a <b>Expedição / Log. Interna</b> tratar: erros, quem errou, prazos de aceite e de finalização, custos e pendências. Respeita o filtro de mês do topo.</p></div>
+        <span class="card-tag" style="font-size:11px;padding:6px 11px">EXPEDIÇÃO / LOG. INTERNA</span>
+      </div>
+      <div class="toolbar">
+        <div class="seg" id="expVertSeg">
+          <button class="active" data-v="ambas" onclick="setExpVert('ambas')">NC + Erros</button>
+          <button data-v="NC" onclick="setExpVert('NC')">Não Conformidades</button>
+          <button data-v="ERRO" onclick="setExpVert('ERRO')">Erros Operacionais</button>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn-ghost" onclick="exportExpCSV()">Exportar CSV</button>
+      </div>
+      <div id="expNote"></div>
+      <div class="exp-kpis" id="expKpis"></div>
+      <div class="row cols-2">
+        <div class="card"><div class="card-head"><div><h3>Erros por tipo</h3><div class="sub">O que mais acontece na Expedição</div></div><span class="card-tag">TIPO</span></div><div class="chart-wrap tall"><canvas id="chExpTipo"></canvas></div></div>
+        <div class="card"><div class="card-head"><div><h3>Quem errou</h3><div class="sub">Colaboradores identificados nas ocorrências</div></div><span class="card-tag">COLABORADOR</span></div><div class="chart-wrap tall"><canvas id="chExpQuem"></canvas><div id="chExpQuemEmpty"></div></div></div>
+      </div>
+      <div class="row cols-3">
+        <div class="card"><div class="card-head"><div><h3>Situação das tratativas</h3><div class="sub">Onde cada ocorrência está agora</div></div></div><div class="chart-wrap"><canvas id="chExpStatus"></canvas></div></div>
+        <div class="card"><div class="card-head"><div><h3>Tempo até finalizar</h3><div class="sub">Dias entre a abertura e o OK</div></div></div><div class="chart-wrap"><canvas id="chExpLead"></canvas></div></div>
+        <div class="card"><div class="card-head"><div><h3>Idade das pendências</h3><div class="sub">Há quantos dias estão em aberto</div></div></div><div class="chart-wrap"><canvas id="chExpAge"></canvas></div></div>
+      </div>
+      <div class="card"><div class="card-head"><div><h3>Evolução mensal</h3><div class="sub">Ocorrências recebidas por mês e situação atual</div></div><span class="card-tag">MÊS</span></div><div class="chart-wrap"><canvas id="chExpMes"></canvas></div></div>
+      <div class="row cols-2" style="margin-top:16px">
+        <div class="card"><div class="card-head"><div><h3>Ranking de colaboradores</h3><div class="sub">Erros por pessoa, finalização e custo</div></div></div><div class="table-wrap"><table class="data" id="expRank"></table></div><div id="expRankEmpty"></div></div>
+        <div class="card"><div class="card-head"><div><h3>Pendências mais antigas</h3><div class="sub">Ainda sem OK, da mais antiga para a mais nova</div></div></div><div class="table-wrap"><table class="data" id="expOld"></table></div><div id="expOldEmpty"></div></div>
+      </div>
+      <div class="card" style="margin-top:16px;padding:18px 6px 0">
+        <div class="card-head" style="padding:0 12px"><div><h3>Detalhamento das tratativas</h3><div class="sub">Clique no ✎ para informar ou corrigir quem errou</div></div><input id="expSearch" placeholder="Buscar ocorrência, ref., pessoa…" style="max-width:260px" oninput="renderExpTable()"></div>
+        <div class="table-wrap"><table class="data" id="expTable"></table></div><div id="expEmpty"></div>
+      </div>
+      <datalist id="dlQuem"></datalist>
+    </section>
+
     <section class="page" data-page="excl">
       <div class="page-head">
         <div><div class="eyebrow">Registro</div><h2>Ocorrências excluídas</h2><p>Tudo que foi excluído fica aqui com os dados originais, quem excluiu, quando e o motivo. É possível restaurar.</p></div>
@@ -998,6 +1054,7 @@ function enterApp(){
   document.getElementById('uname').textContent = SESSION.name;
   document.getElementById('uav').textContent = SESSION.name[0].toUpperCase();
   document.getElementById('navAdmin').classList.toggle('hidden', SESSION.role!=='admin');
+  document.getElementById('navExp').classList.toggle('hidden', !canSeeExp());
   const sb=document.getElementById('setorBar');
   if(SESSION.role==='setor'){ sb.innerHTML='<span class="lbl">MEU SETOR</span><b>'+esc(SESSION.name)+'</b>'; sb.classList.remove('hidden'); }
   else { sb.classList.add('hidden'); }
@@ -1192,7 +1249,7 @@ function fmt(n){ return (n||0).toLocaleString('pt-BR'); }
 const COL = ()=> VERT==='ERRO' ? '#e5484d' : '#2E6BC6';
 const gridColor='rgba(16,35,61,.07)';
 
-function renderAll(){ updateBadges(); if(TAB==='dash')renderDash(); if(TAB==='sem')renderSem(); if(TAB==='tram')renderTram(); if(TAB==='base')renderBase(); if(TAB==='excl')renderExcl(); }
+function renderAll(){ updateBadges(); if(TAB==='dash')renderDash(); if(TAB==='sem')renderSem(); if(TAB==='tram')renderTram(); if(TAB==='base')renderBase(); if(TAB==='excl')renderExcl(); if(TAB==='exp')renderExp(); }
 
 /* ---- PAINEL ---- */
 function renderDash(){
@@ -1379,6 +1436,7 @@ function openResp(id){
   const isAceito = r.status==='aceito';
   const isCriador = r.status==='pendente_criador';
   let extra='';
+  const quemField = `<div class="field"><label>Quem errou <span style="font-weight:400;color:var(--ink-muted)">(opcional — separe vários nomes por vírgula)</span></label><input id="respQuem" list="dlQuem" value="${esc(r.quemErrou||'')}" placeholder="Nome do(s) colaborador(es) envolvido(s)"></div>`;
   if(isResp||isAceito){
     extra=`<div class="field"><label>Plano de ação ${isResp?'(obrigatório ao aceitar)':''}</label><textarea id="respPlano" placeholder="Descreva o que será feito para sanar o problema…">${esc(r.plano||'')}</textarea><div class="hint-inline">Preenchido pelo responsável apontado como causador.</div></div>`;
   }
@@ -1395,7 +1453,9 @@ function openResp(id){
     <div style="font-weight:700;font-size:12px;color:var(--ink-dim);margin-bottom:8px">HISTÓRICO DO TRÂMITE</div>
     <div class="hist-wrap">${hist}</div>
     ${extra}
+    ${quemField}
     <div class="field"><label>Observação</label><textarea id="respObs" placeholder="Escreva sua resposta / justificativa…"></textarea></div>`;
+  fillQuemList();
   document.getElementById('respFoot').innerHTML=respButtons(r);
   document.getElementById('modalResp').classList.add('on');
 }
@@ -1424,7 +1484,196 @@ function doDevolver(){ const r=cur(); if(!r)return; const obs=document.getElemen
 function doReenviar(){ const r=cur(); if(!r)return; const obs=document.getElementById('respObs').value.trim(); const novo=document.getElementById('respResp').value; if(!obs){ toast('Escreva uma observação para o responsável.'); return; } r.resp=novo; r.status='pendente_resp'; r.pendCom=novo; pushHist(r,'Reenviou para '+novo,obs,'',''); toast('Reenviada a '+novo+'.'); finishResp(); }
 function doConcluir(){ const r=cur(); if(!r)return; const obs=document.getElementById('respObs').value.trim(); r.status='ok'; r.pendCom=''; pushHist(r,'Concluído (OK)',obs,'',''); toast('Ocorrência finalizada (OK).'); finishResp(); }
 function doReabrir(){ const r=cur(); if(!r)return; r.status='pendente_resp'; r.pendCom=r.resp; pushHist(r,'Reabriu a ocorrência',document.getElementById('respObs').value.trim(),'',''); toast('Reaberta.'); finishResp(); }
-function finishResp(){ save(); closeModal('modalResp'); fillMonthFilter(); renderAll(); }
+function finishResp(){ captureQuem(); save(); closeModal('modalResp'); fillMonthFilter(); renderAll(); }
+
+/* ============================================================
+   DASH EXPEDIÇÃO / LOG. INTERNA — aba interna
+   ============================================================ */
+let expVert='ambas';
+function isExp(n){ return normTipo(n).startsWith('expedicao'); }
+function canSeeExp(){ return !!SESSION && (SESSION.role==='admin' || SESSION.nivel==='tudo' || isExp(SESSION.name)); }
+function setExpVert(v){ expVert=v; document.querySelectorAll('#expVertSeg button').forEach(b=>b.classList.toggle('active',b.dataset.v===v)); renderExp(); }
+function quemList(r){ return String(r.quemErrou||'').split(/[,;\/]+/).map(x=>x.trim()).filter(Boolean); }
+function fillQuemList(){
+  const dl=document.getElementById('dlQuem'); if(!dl)return;
+  const set=new Set(); STATE.registros.forEach(r=>quemList(r).forEach(n=>set.add(n)));
+  dl.innerHTML=[...set].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(n=>`<option value="${esc(n)}">`).join('');
+}
+function normQuem(v){ return String(v||'').split(/[,;\/]+/).map(x=>x.trim().replace(/\s+/g,' ')).filter(Boolean).map(x=>x.toUpperCase()).join(', '); }
+function setQuem(r,val){
+  const novo=normQuem(val); if(novo===(r.quemErrou||'')) return false;
+  r.quemErrou=novo;
+  if(!Array.isArray(r.hist))r.hist=[];
+  r.hist.push({quem:SESSION.name,acao:novo?('Informou quem errou: '+novo):'Removeu o nome de quem errou',obs:'',aceite:'',plano:'',quando:new Date().toISOString()});
+  return true;
+}
+function captureQuem(){ const el=document.getElementById('respQuem'); const r=cur(); if(el&&r) setQuem(r,el.value); }
+function editQuem(id){
+  const r=STATE.registros.find(x=>x.id===id); if(!r)return;
+  if(!canSeeExp()){ toast('Sem permissão para alterar.'); return; }
+  const v=prompt('Quem errou nesta ocorrência?\n(separe vários nomes por vírgula; deixe vazio para remover)', r.quemErrou||'');
+  if(v===null) return;
+  if(setQuem(r,v)){ save(); renderExp(); toast('Nome registrado.'); }
+}
+const DAY=86400000;
+function tsOf(iso){ const t=Date.parse(iso); return isNaN(t)?null:t; }
+function expInfo(r){
+  const h=Array.isArray(r.hist)?r.hist:[];
+  const ab=tsOf(r.dataCad)||(h[0]&&tsOf(h[0].quando))||null;
+  const aceiteH=h.find(x=>x.aceite==='S');
+  let okH=null; if(r.status==='ok'){ for(let i=h.length-1;i>=0;i--){ if(/^Concluído|^Encerr/.test(h[i].acao||'')){ okH=h[i]; break; } } }
+  const tAce=aceiteH&&ab?Math.max(0,(tsOf(aceiteH.quando)-ab)/DAY):null;
+  const tOk=okH&&ab?Math.max(0,(tsOf(okH.quando)-ab)/DAY):null;
+  const idade=(r.status!=='ok'&&ab)?Math.max(0,(Date.now()-ab)/DAY):null;
+  return {
+    ab, tAce, tOk, idade,
+    recusas:h.filter(x=>x.aceite==='N').length,
+    devol:h.filter(x=>/^Devolveu/.test(x.acao||'')).length,
+    reab:h.filter(x=>/^Reabriu/.test(x.acao||'')).length,
+    custo:parseMoney(r.custo)
+  };
+}
+function expRegs(){
+  return visibleReg().filter(r=>isExp(r.resp) && (expVert==='ambas'||r.vert===expVert) && passMonth(r.data));
+}
+function expSituacao(r){ return r.status==='ok'?'Finalizada':r.status==='aceito'?'Em tratamento':r.status==='pendente_criador'?'Devolvida ao criador':'Aguardando aceite'; }
+function fmtDias(d){ if(d==null) return '—'; if(d<1) return Math.round(d*24)+' h'; return (Math.round(d*10)/10).toLocaleString('pt-BR')+' d'; }
+function avg(a){ return a.length? a.reduce((x,y)=>x+y,0)/a.length : null; }
+function median(a){ if(!a.length)return null; const s=a.slice().sort((x,y)=>x-y), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function bucket(d){ return d<=1?'até 1 dia':d<=3?'2–3 dias':d<=7?'4–7 dias':d<=15?'8–15 dias':'mais de 15'; }
+const BUCKETS=['até 1 dia','2–3 dias','4–7 dias','8–15 dias','mais de 15'];
+function pct(a,b){ return b? Math.round(a*100/b)+'%' : '—'; }
+
+function renderExp(){
+  if(!canSeeExp()) return;
+  fillQuemList();
+  const regs=expRegs();
+  const info=new Map(regs.map(r=>[r.id,expInfo(r)]));
+  const tot=regs.length;
+  const ok=regs.filter(r=>r.status==='ok').length;
+  const trat=regs.filter(r=>r.status==='aceito').length;
+  const pend=regs.filter(r=>r.status==='pendente_resp').length;
+  const dev=regs.filter(r=>r.status==='pendente_criador').length;
+  const ident=regs.filter(r=>quemList(r).length).length;
+  const comPlano=regs.filter(r=>(r.plano||'').trim()).length;
+  const tAce=regs.map(r=>info.get(r.id).tAce).filter(x=>x!=null);
+  const tOk=regs.map(r=>info.get(r.id).tOk).filter(x=>x!=null);
+  const custo=regs.reduce((a,r)=>a+info.get(r.id).custo,0);
+  const comCusto=regs.filter(r=>info.get(r.id).custo>0).length;
+  const reab=regs.reduce((a,r)=>a+info.get(r.id).reab,0);
+  const recEvents=regs.reduce((a,r)=>a+info.get(r.id).recusas,0);
+  const aceitas=regs.filter(r=>(r.hist||[]).some(h=>h.aceite==='S')).length;
+  const atrasadas=regs.filter(r=>{const i=info.get(r.id); return i.idade!=null&&i.idade>7;}).length;
+  // ocorrências que chegaram à Expedição, foram recusadas e hoje estão com outro setor
+  const redirec=visibleReg().filter(r=>!isExp(r.resp)&&(expVert==='ambas'||r.vert===expVert)&&passMonth(r.data)&&(r.hist||[]).some(h=>h.aceite==='N'&&isExp(h.quem))).length;
+
+  const note=document.getElementById('expNote');
+  note.innerHTML = tot ? (ident<tot ? `<div class="exp-note">ℹ️ ${tot-ident} de ${tot} ocorrência(s) ainda sem o nome de quem errou. Informe pelo ✎ no detalhamento ou ao responder a pendência no Trâmite.</div>`:'') : '';
+
+  const g=document.getElementById('expKpis'); g.innerHTML='';
+  g.appendChild(kpi('Recebidas para tratar',fmt(tot),'responsável: Expedição / Log. Interna','navy'));
+  g.appendChild(kpi('Finalizadas (OK)',fmt(ok),pct(ok,tot)+' do total','green'));
+  g.appendChild(kpi('Em tratamento',fmt(trat),'aceitas, aguardando OK','yellow'));
+  g.appendChild(kpi('Aguardando aceite',fmt(pend),dev?(fmt(dev)+' devolvida(s) ao criador'):'nenhuma devolvida','red'));
+  g.appendChild(kpi('Em aberto há +7 dias',fmt(atrasadas),'sem OK há mais de uma semana','red'));
+  g.appendChild(kpi('Tempo médio p/ aceitar',fmtDias(avg(tAce)),'mediana '+fmtDias(median(tAce)),''));
+  g.appendChild(kpi('Tempo médio p/ finalizar',fmtDias(avg(tOk)),'mediana '+fmtDias(median(tOk)),''));
+  g.appendChild(kpi('Taxa de aceite',pct(aceitas,aceitas+recEvents),fmt(recEvents)+' recusa(s) · '+fmt(redirec)+' redirecionada(s)',''));
+  g.appendChild(kpi('Com plano de ação',pct(comPlano,tot),fmt(comPlano)+' de '+fmt(tot),'green'));
+  g.appendChild(kpi('Quem errou identificado',pct(ident,tot),fmt(ident)+' de '+fmt(tot)+' ocorrências','orange'));
+  g.appendChild(kpi('Custo total',(custo?'R$ '+fmtMoney(custo):'R$ 0,00'),fmt(comCusto)+' ocorrência(s) com custo','red'));
+  g.appendChild(kpi('Reaberturas',fmt(reab),'ocorrências que voltaram após OK',''));
+
+  const C={green:'#1f9d57',yellow:'#e8a800',red:'#e5484d',orange:'#f5821f',blue:'#2E6BC6',navy:'#1A3A6E',gray:'#9aa6b8'};
+  // por tipo
+  const byT=new Map(); regs.forEach(r=>byT.set(r.tipo||'Não especificado',(byT.get(r.tipo||'Não especificado')||0)+1));
+  mkChart('chExpTipo',{type:'bar',data:{labels:[...byT].sort((a,b)=>b[1]-a[1]).slice(0,12).map(e=>e[0]),datasets:[{data:[...byT].sort((a,b)=>b[1]-a[1]).slice(0,12).map(e=>e[1]),backgroundColor:C.navy,borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{precision:0}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+  // quem errou
+  const byQ=new Map(); regs.forEach(r=>quemList(r).forEach(n=>byQ.set(n,(byQ.get(n)||0)+1)));
+  const qEnt=[...byQ].sort((a,b)=>b[1]-a[1]).slice(0,12);
+  document.getElementById('chExpQuemEmpty').innerHTML = qEnt.length?'':emptyBox('Nenhum nome informado ainda.');
+  document.getElementById('chExpQuem').style.display = qEnt.length?'':'none';
+  mkChart('chExpQuem',{type:'bar',data:{labels:qEnt.map(e=>e[0]),datasets:[{data:qEnt.map(e=>e[1]),backgroundColor:C.orange,borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{precision:0}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+  // status
+  mkChart('chExpStatus',{type:'doughnut',data:{labels:['Finalizada','Em tratamento','Aguardando aceite','Devolvida ao criador'],datasets:[{data:[ok,trat,pend,dev],backgroundColor:[C.green,C.yellow,C.red,C.gray],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}}});
+  // tempo até finalizar
+  const lb=BUCKETS.map(b=>tOk.filter(d=>bucket(d)===b).length);
+  mkChart('chExpLead',{type:'bar',data:{labels:BUCKETS,datasets:[{data:lb,backgroundColor:C.green,borderRadius:5}]},options:baseOpts(false)});
+  // idade das pendências
+  const ages=regs.map(r=>info.get(r.id).idade).filter(x=>x!=null);
+  mkChart('chExpAge',{type:'bar',data:{labels:BUCKETS,datasets:[{data:BUCKETS.map(b=>ages.filter(d=>bucket(d)===b).length),backgroundColor:BUCKETS.map((b,i)=>i<2?C.yellow:C.red),borderRadius:5}]},options:baseOpts(false)});
+  // mensal empilhado
+  const months=new Map();
+  regs.forEach(r=>{ const k=monthKeyOf(r.data)||monthKeyOf(r.dataCad)||'s/ data'; if(!months.has(k))months.set(k,{ok:0,tr:0,pe:0}); const m=months.get(k); if(r.status==='ok')m.ok++; else if(r.status==='aceito')m.tr++; else m.pe++; });
+  const mk=[...months.keys()].sort();
+  const lbl=mk.map(k=>{ if(!/^\d{4}-\d{2}$/.test(k))return k; const[y,m]=k.split('-'); return MES_ABBR[+m-1]+'/'+y.slice(2); });
+  mkChart('chExpMes',{type:'bar',data:{labels:lbl,datasets:[
+      {label:'Finalizadas',data:mk.map(k=>months.get(k).ok),backgroundColor:C.green,borderRadius:4},
+      {label:'Em tratamento',data:mk.map(k=>months.get(k).tr),backgroundColor:C.yellow,borderRadius:4},
+      {label:'Pendentes',data:mk.map(k=>months.get(k).pe),backgroundColor:C.red,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:gridColor},ticks:{precision:0}}}}});
+
+  // ranking de colaboradores
+  const rk=new Map();
+  regs.forEach(r=>{ const i=info.get(r.id); quemList(r).forEach(n=>{
+    if(!rk.has(n))rk.set(n,{n,q:0,ok:0,ab:0,custo:0,tipos:new Map(),ult:''});
+    const o=rk.get(n); o.q++; if(r.status==='ok')o.ok++; else o.ab++; o.custo+=i.custo; o.tipos.set(r.tipo,(o.tipos.get(r.tipo)||0)+1);
+    const d=r.data||''; const iso=/^\d{4}-/.test(d)?d:(monthKeyOf(d)?d.split('/').reverse().join('-'):''); if(iso>o.ult)o.ult=iso;
+  }); });
+  const rkL=[...rk.values()].sort((a,b)=>b.q-a.q||b.custo-a.custo);
+  const tbR=document.getElementById('expRank');
+  if(!rkL.length){ tbR.innerHTML=''; document.getElementById('expRankEmpty').innerHTML=emptyBox('Sem nomes informados neste filtro.'); }
+  else { document.getElementById('expRankEmpty').innerHTML='';
+    tbR.innerHTML=`<thead><tr><th>#</th><th>Colaborador</th><th>Erros</th><th>Finalização</th><th>Tipo mais comum</th><th>Custo</th><th>Último</th></tr></thead><tbody>${rkL.map((o,i)=>{
+      const top=[...o.tipos].sort((a,b)=>b[1]-a[1])[0];
+      return `<tr><td>${i+1}</td><td><span class="quem-tag">${esc(o.n)}</span></td><td><b>${o.q}</b></td>
+        <td><div style="display:flex;align-items:center;gap:7px"><div class="exp-bar"><i style="width:${Math.round(o.ok*100/o.q)}%"></i></div><span style="font-size:11px">${o.ok}/${o.q}</span></div></td>
+        <td>${esc(top?top[0]:'—')}${top&&top[1]>1?` <span style="color:var(--ink-muted)">(${top[1]}×)</span>`:''}</td><td>${o.custo?'R$ '+fmtMoney(o.custo):'—'}</td><td>${fmtData(o.ult)}</td></tr>`;}).join('')}</tbody>`;
+  }
+  // pendências mais antigas
+  const old=regs.filter(r=>r.status!=='ok').sort((a,b)=>(info.get(b.id).idade||0)-(info.get(a.id).idade||0)).slice(0,10);
+  const tbO=document.getElementById('expOld');
+  if(!old.length){ tbO.innerHTML=''; document.getElementById('expOldEmpty').innerHTML=emptyBox('Nenhuma pendência em aberto. 👏'); }
+  else { document.getElementById('expOldEmpty').innerHTML='';
+    tbO.innerHTML=`<thead><tr><th>Em aberto</th><th>Ocorrência</th><th>Situação</th><th>Com quem</th></tr></thead><tbody>${old.map(r=>{ const d=info.get(r.id).idade;
+      return `<tr><td class="${d>7?'age-hot':''}">${fmtDias(d)}</td><td style="max-width:240px"><b>${esc(r.ocorr||'—')}</b><div style="font-size:11px;color:var(--ink-muted)">${fmtData(r.data)} · ${esc(r.tipo)}</div></td><td><span class="st-badge ${stClass(r)}">${esc(expSituacao(r))}</span></td><td>${esc(r.pendCom||r.resp)}</td></tr>`;}).join('')}</tbody>`;
+  }
+  renderExpTable();
+}
+function renderExpTable(){
+  const tb=document.getElementById('expTable'), emp=document.getElementById('expEmpty'); if(!tb)return;
+  const q=(document.getElementById('expSearch').value||'').toLowerCase();
+  let regs=expRegs();
+  if(q) regs=regs.filter(r=>[r.ocorr,r.ref,r.placa,r.tipo,r.quemErrou,r.obs,r.plano,r.criadoPor].join(' ').toLowerCase().includes(q));
+  regs.sort((a,b)=>b.id-a.id);
+  if(!regs.length){ tb.innerHTML=''; emp.innerHTML=emptyBox('Nenhuma tratativa da Expedição neste filtro.'); return; }
+  emp.innerHTML='';
+  tb.innerHTML=`<thead><tr><th>Data</th><th>Ocorrência</th><th>Tipo</th><th>Quem errou</th><th>Situação</th><th>Plano de ação</th><th>Aceite em</th><th>OK em</th><th>Recusas / devol.</th><th>Custo</th><th>Aberta por</th></tr></thead><tbody>${regs.map(r=>{
+    const i=expInfo(r); const qs=quemList(r);
+    return `<tr>
+      <td>${fmtData(r.data)}</td>
+      <td style="max-width:260px"><b>${esc(r.ocorr||'—')}</b>${r.ref?`<div style="font-size:11px;color:var(--ink-muted)">Ref: ${esc(r.ref)}</div>`:''}<div style="font-size:11px;color:var(--ink-muted)">${r.vert==='ERRO'?'Erro operacional':'Não conformidade'}${r.origem==='painel'?' · nova base':r.origem==='planilha'?' · planilha':''}</div></td>
+      <td>${esc(r.tipo)}</td>
+      <td style="white-space:nowrap">${qs.length?qs.map(n=>`<span class="quem-tag">${esc(n)}</span>`).join(''):'<span class="quem-none">não informado</span>'}<button class="edit-q" title="Informar / corrigir quem errou" onclick="editQuem(${r.id})">✎</button></td>
+      <td><span class="st-badge ${stClass(r)}">${esc(expSituacao(r))}</span></td>
+      <td style="max-width:240px;font-size:11.5px">${r.plano?esc(r.plano):'<span class="quem-none">sem plano</span>'}</td>
+      <td>${fmtDias(i.tAce)}</td><td>${fmtDias(i.tOk)}</td>
+      <td>${i.recusas||i.devol?(i.recusas+' / '+i.devol):'—'}</td>
+      <td>${i.custo?'R$ '+fmtMoney(i.custo):'—'}</td>
+      <td>${esc(r.criadoPor)}</td></tr>`;}).join('')}</tbody>`;
+}
+function exportExpCSV(){
+  const regs=expRegs().sort((a,b)=>b.id-a.id);
+  const head=['Data','Vertente','Ocorrência','Tipo','Referência','Placa','Quem errou','Situação','Plano de ação','Dias até aceite','Dias até OK','Dias em aberto','Recusas','Devoluções','Reaberturas','Custo (R$)','Aberta por','Origem'];
+  const cell=v=>{ v=v==null?'':String(v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const n=d=>d==null?'':(Math.round(d*10)/10).toString().replace('.',',');
+  const rows=regs.map(r=>{ const i=expInfo(r); return [fmtData(r.data),r.vert==='ERRO'?'Erro operacional':'Não conformidade',r.ocorr,r.tipo,r.ref,r.placa,r.quemErrou||'',expSituacao(r),r.plano||'',n(i.tAce),n(i.tOk),n(i.idade),i.recusas,i.devol,i.reab,i.custo?fmtMoney(i.custo):'',r.criadoPor,r.origem||'cadastro'].map(cell).join(';'); });
+  const blob=new Blob(['﻿'+[head.join(';'),...rows].join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='tratativas_expedicao_'+new Date().toISOString().slice(0,10)+'.csv'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+}
 /* ===== Exclusão (admin) — com registro do que era e do motivo ===== */
 let EXCL_ID=null;
 function openExcluir(id){
