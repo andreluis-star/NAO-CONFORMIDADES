@@ -787,6 +787,7 @@ function initCloud(){
           finally{ cloudApplying=false; }
           flushPending();
           if(SHEET){ const n=importTreatables(); if(n && SESSION && !isEditing() && !modalOpen()){ renderAdmin(); renderAll(); } }
+          if(PAINEL){ const n=importPainel(); if(n && SESSION && !isEditing() && !modalOpen()){ renderAdmin(); renderAll(); } }
         }
       } else {
         cloudDoc.set({state:JSON.stringify(STATE), ts:Date.now()}).catch(()=>{});
@@ -865,6 +866,117 @@ function importTreatables(){
 }
 function treatCount(){ return SHEET?SHEET.records.filter(r=>isTreat(r.data)).length:0; }
 
+/* ============================================================
+   NOVA BASE DE ATUALIZAÇÃO — Painel de Não Conformidades
+   (franciscosilva-sys.github.io/portoex-painel/NaoConformidades.html)
+   Regras: NUNCA altera, apaga ou sobrescreve o que já está na base.
+   Só ACRESCENTA ocorrências que ainda não existem. Uma ocorrência é
+   considerada "já existente" se:
+     (a) já foi importada antes (mesma empresa + código), mesmo que
+         tenha sido excluída depois; ou
+     (b) já existe um cadastro manual (ou da planilha) com a mesma
+         minuta no mesmo mês.
+   ============================================================ */
+const PAINEL_URLS=[
+  'https://franciscosilva-sys.github.io/portoex-painel/NaoConformidades.html',
+  'https://raw.githubusercontent.com/franciscosilva-sys/portoex-painel/main/NaoConformidades.html'
+];
+let PAINEL=null; // lista única de ocorrências da nova base
+const PAINEL_SETOR={
+  logisticainterna:'Expedição / Log. Interna', expedicao:'Expedição / Log. Interna',
+  logisticaexterna:'Operação / Log. Externa', operacao:'Operação / Log. Externa',
+  filial:'Filial', controladoria:'Controladoria', atendimento:'Atendimento', comercial:'Comercial',
+  grfrota:'G.R. / Frota', frota:'G.R. / Frota', estoque:'Estoque', armazem:'Estoque',
+  financeiro:'Financeiro', cliente:'Cliente', motorista:'Motorista',
+  rh:'Recursos Humanos', recursoshumanos:'Recursos Humanos'
+};
+const PAINEL_TIPO={
+  'sem categoria':'Não especificado',
+  'erro conferencia':'Erro de conferência',
+  'no show agendamento':'No-show de agendamento',
+  'demora liberacao da coleta':'Demora na liberação da coleta',
+  'demora da liberacao da coleta':'Demora na liberação da coleta',
+  'erro de programacao do gestor da conta do cliente':'Erro de programação gestor da conta',
+  'erro na documentacao':'Documentação errada'
+};
+function painelTipo(cat){
+  const n=normTipo(cat); if(!n) return 'Não especificado';
+  if(PAINEL_TIPO[n]) return PAINEL_TIPO[n];
+  const c=canonTipo(cat); if(c!==cat) return c;
+  const s=String(cat).trim().toLowerCase(); return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function painelISO(d){ const m=String(d||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''; }
+function minutasOf(s){ return (String(s||'').match(/\d{5,}/g)||[]); }
+function parsePainel(html){
+  const m=html.match(/const\s+DATA\s*=\s*(\{[\s\S]*?\});?\s*\n/);
+  if(!m) throw new Error('formato da página mudou (DATA não encontrado)');
+  const DATA=JSON.parse(m[1]);
+  const map=new Map();
+  Object.keys(DATA).forEach(k=>{
+    const setor=(k.split('_')[1]||'').toLowerCase();
+    (DATA[k]||[]).forEach(r=>{
+      if(!r||!r.codigo) return;
+      const key=(r.empresa||'')+':'+r.codigo;
+      const cur=map.get(key);
+      if(!cur) map.set(key,{r, setor: setor==='todos'?'':setor});
+      else if(!cur.setor && setor!=='todos') cur.setor=setor;
+    });
+  });
+  return [...map.values()];
+}
+async function loadPainel(){
+  let lastErr=null;
+  for(const url of PAINEL_URLS){
+    try{
+      const res=await fetch(url+'?_='+Date.now(),{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      PAINEL=parsePainel(await res.text());
+      const n=importPainel();
+      if(n){ fillMonthFilter(); updateBadges(); renderAll(); if(SESSION&&SESSION.role==='admin'){ renderAdmin(); toast(n+' nova(s) ocorrência(s) importada(s) da nova base.'); } }
+      return;
+    }catch(e){ lastErr=e; }
+  }
+  console.warn('Nova base de NC indisponível:', lastErr&&lastErr.message);
+}
+function importPainel(){
+  if(!PAINEL||!PAINEL.length) return 0;
+  const keys=new Set(STATE.registros.filter(r=>r.srcKey).map(r=>r.srcKey));
+  const minIdx=new Set();
+  // só registros que NÃO vieram da nova base (cadastros manuais / planilha) entram na checagem por minuta
+  STATE.registros.forEach(r=>{ if(r.origem==='painel') return; const mk=monthKeyOf(r.data)||''; minutasOf(r.ref).forEach(x=>minIdx.add(mk+'|'+x)); });
+  let added=0;
+  PAINEL.forEach(({r,setor})=>{
+    const iso=painelISO(r.data);
+    if(!iso||!isTreat(iso)) return;
+    const key='painel:'+(r.empresa||'')+':'+r.codigo;
+    if(keys.has(key)) return;
+    const mk=monthKeyOf(iso);
+    const mins=minutasOf(r.minuta);
+    if(mins.some(x=>minIdx.has(mk+'|'+x))) return; // já existe cadastro manual com a mesma minuta no mês
+    const resp=PAINEL_SETOR[setor]||'Sem responsável direto';
+    const tipo=painelTipo(r.categoria);
+    const obs=[r.resumo, r.causa_raiz?('Causa raiz: '+r.causa_raiz):'', r.plano_acao?('Plano de ação (origem): '+r.plano_acao):'',
+               'Origem: Painel NC · '+(r.empresa||'')+' cód. '+r.codigo+(r.responsavel?(' · Resp.: '+r.responsavel):'')+(r.status?(' · Status: '+r.status):'')].filter(Boolean).join('\n');
+    const now=new Date().toISOString();
+    STATE.registros.push({
+      id: Date.now()+(++impSeq), vert:'NC',
+      ocorr: tipo+(r.cliente?(' — '+r.cliente):''),
+      data: iso, dataCad: now,
+      placa:'', resp, tipo, sub:'',
+      ref: r.minuta||'', obs,
+      custoTipo:'nenhum', custo:'', informar:true,
+      criadoPor:'Direção', status:'pendente_resp', pendCom:resp, plano:'',
+      hist:[{quem:'Direção',acao:'Importado da nova base (Painel NC) para tratamento',obs:'',aceite:'',plano:'',quando:now}],
+      origem:'painel', srcKey:key,
+      origCodigo:String(r.codigo), origEmpresa:r.empresa||'', cliente:r.cliente||''
+    });
+    keys.add(key);
+    added++;
+  });
+  if(added) save();
+  return added;
+}
+
 /* ============ LOGIN ============ */
 function doLogin(){
   const p = document.getElementById('loginPass').value.trim();
@@ -893,6 +1005,7 @@ function enterApp(){
   semScope = SESSION.role==='admin' ? 'todos' : 'meu';
   fillSelectsOnce();
   loadSheet();
+  loadPainel();
   setVertente('NC');
   setTab('sem');
   renderAdmin();
